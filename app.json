@@ -1,0 +1,17 @@
+{
+  "name": "teaclubmobile",
+  "displayName": "teaclubmobile",
+  "expo": {
+    "name": "teaclubmobile",
+    "slug": "teaclubmobile",
+    "version": "1.0.0",
+    "platforms": [
+      "ios",
+      "android",
+      "web"
+    ],
+    "assetBundlePatterns": [
+      "**/*"
+    ]
+  }
+}
