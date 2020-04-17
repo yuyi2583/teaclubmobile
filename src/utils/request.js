@@ -54,7 +54,6 @@ const headers = new Headers({
       body: JSON.stringify(params),
       // credentials: "include"  //携带cookie的配置
     }).then(response => {
-      console.log("response",response)
       return handleResponse(url, response);
     }).catch(err => {
       return  { msg: "请求失败，连接不到服务器.", code: 404 ,error:"请求失败，连接不到服务器."};
@@ -62,7 +61,6 @@ const headers = new Headers({
   }
   
   function handleResponse(url, response) {
-    console.log("handle response json", JSON.stringify(response));
     if(response.status==404){
       return { msg: "请求失败，找不到该资源.", code: 404 ,error:"请求失败，连接不到服务器." };
     }

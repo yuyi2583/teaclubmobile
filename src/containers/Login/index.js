@@ -4,50 +4,51 @@ import { WingBlank, InputItem, Flex, List, Button, Toast, Portal } from "@ant-de
 import { actions as authActions, getUser } from "../../redux/modules/auth";
 import { bindActionCreators } from "redux";
 import { connect } from "react-redux";
+import { getData } from "../../utils/storage";
+import { Redirect } from "react-router-native";
+import { TOKEN } from "../../utils/common";
 
 class Login extends Component {
 
     state = {
         id: "",
-        password: ""
+        password: "",
+        redirect: false,
+    }
+
+    componentDidMount() {
+        getData(TOKEN)
+            .then(token => {
+                if (token != null) {
+                    console.log("has token")
+                    this.setState({ redirect: true });
+                }
+            })
     }
 
     login = () => {
-        // const { id, password } = this.state;
-        // if (id.length == 0 || password.length == 0) {
-        //     Toast.fail("身份证或密码不能为空！");
-        //     return;
-        // }
+        const { id, password } = this.state;
+        if (id.length == 0 || password.length == 0) {
+            Toast.fail("身份证或密码不能为空！");
+            return;
+        }
         const key = Toast.loading('Loading....', 0);
-        fetch('http://192.168.56.1:8080/mobile/login', {
-            method: 'GET',
-            headers: {
-                Accept: 'application/json',
-                'Content-Type': 'application/json',
-            },
-        })
-            .then((response) => response.json())
-            .then((json) => {
-                console.log(json);
+        this.props.login(id, password)
+            .then(() => {
                 Portal.remove(key);
-                // return json.movies;
+                this.setState({ redirect: true });
             })
-            .catch((error) => {
+            .catch(err => {
                 Portal.remove(key);
-                console.error(error);
+                Toast.fail(err);
             });
-        // this.props.login(id, password)
-        //     .then(() => {
-        //         Portal.remove(key);
-        //     })
-        //     .catch(err => {
-        //         Portal.remove(key);
-        //         Toast.fail(err);
-        //     })
     }
 
     render() {
-        const { retrieveRequestQuantity } = this.props;
+        const { redirect } = this.state;
+        if (redirect) {
+            return <Redirect to={"/mobile"} />;
+        }
         return (
             <Flex direction="column" justify="center" align="center" style={{ width: "100%", height: "100%" }}>
                 <Flex.Item style={{ width: "100%", marginTop: 30 }}>

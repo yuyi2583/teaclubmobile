@@ -11,6 +11,7 @@ import connectRoute from "../utils/connectRoute";
 import asyncComponent from "../utils/AsyncComponent";
 
 const AsyncLogin = connectRoute(asyncComponent(() => import("./Login")));
+const AsyncHome=connectRoute(asyncComponent(()=>import("./Home")));
 
 class Container extends React.Component {
     state = {
@@ -46,7 +47,8 @@ class Container extends React.Component {
             <Provider theme={theme}>
                 <Router>
                     <Switch>
-                        <Route path="/" component={AsyncLogin}/>
+                        <Route exact path="/" component={AsyncLogin}/>
+                        <Route path="/mobile" component={AsyncHome}/>
                     </Switch>
                 </Router>
             </Provider>

@@ -1,3 +1,5 @@
+import {requestType} from "../../utils/common";
+
 const initialState = {
     retrieceRequestQuantity: 0,     //当前应用中正在进行获取信息的API请求数
     updateRequestQuantity: 0,        //当前正在进行的UD操作API请求数

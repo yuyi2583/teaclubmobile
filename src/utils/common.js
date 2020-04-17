@@ -3,3 +3,5 @@ export const requestType = {
     "updateRequest": 1,
     "modalRequest": 2,
 }
+
+export const TOKEN="token";
