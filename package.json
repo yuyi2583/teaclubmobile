@@ -8,6 +8,8 @@
     "test": "jest"
   },
   "dependencies": {
+    "@ant-design/icons-react-native": "^2.0.0",
+    "@ant-design/react-native": "^3.3.0",
     "expo": "~37.0.3",
     "expo-updates": "~0.1.0",
     "react": "~16.9.0",
@@ -19,6 +21,7 @@
     "react-native-unimodules": "~0.9.0",
     "react-native-web": "~0.11.7",
     "react-redux": "^7.2.0",
+    "react-router-native": "^5.1.2",
     "redux": "^4.0.5",
     "redux-logger": "^3.0.6",
     "redux-thunk": "^2.3.0"
