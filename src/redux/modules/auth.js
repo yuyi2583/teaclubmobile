@@ -1,5 +1,5 @@
 import { actions as appActions } from "./app";
-import { post } from "../../utils/request";
+import { post, get } from "../../utils/request";
 import url from "../../utils/url";
 import { storeData } from "../../utils/storage";
 import { TOKEN } from "../../utils/common";
@@ -31,19 +31,34 @@ export const actions = {
                 }
             });
         }
+    },
+    verifyToken: (token) => {
+        return (dispatch) => {
+            dispatch(appActions.startRequest());
+            return get(url.verifyToken(token)).then((result) => {
+                dispatch(appActions.finishRequest());
+                if (!result.error) {
+                    console.log("result.data", result.data)
+                    result.data.token=token;
+                    dispatch(loginSuccess(result.data));
+                    return Promise.resolve();
+                } else {
+                    dispatch(appActions.setError(result.error));
+                    return Promise.reject(result.error);
+                }
+            });
+        }
     }
 }
 
 const loginSuccess = (data) => {
     storeData(TOKEN, data.token)
-        // .then(() => {
-        //     return {
-        //         type: types.LOGIN,
-        //         user: data
-        //     }
-        // }).catch(err => {
-        //     throw new Error(err);
-        // });
+        .then(() => {
+            console.log("store token success");
+        })
+        .catch(err => {
+            console.log("store token error", err);
+        })
     return {
         type: types.LOGIN,
         user: data

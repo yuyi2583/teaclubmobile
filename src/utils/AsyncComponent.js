@@ -1,7 +1,9 @@
 import React, { Component } from "react";
-import { getRetrieveRequestQuantity, getUpdateRequestQuantity, getModalRequestQuantity,  getError } from "../redux/modules/app";
+import { getRetrieveRequestQuantity, getUpdateRequestQuantity, getModalRequestQuantity, getError } from "../redux/modules/app";
 import { bindActionCreators } from "redux";
 import { connect } from "react-redux";
+import { Toast } from "@ant-design/react-native";
+import { getUser } from "../redux/modules/auth";
 
 //此高阶组件作用为代码分片
 
@@ -25,11 +27,26 @@ export default function asyncComponent(importComponent) {
       });
     }
 
+    toast = (type, message) => {
+      switch (type) {
+        case "success":
+          return Toast.success(message);
+        case "fail":
+          return Toast.fail(message);
+        case "info":
+          return Toast.info(message);
+        case "loading":
+          return Toast.loading(message, 0);
+        case "offline":
+          return Toast.offline(message);
+      }
+    }
+
 
     render() {
       const C = this.state.component;
       return C ?
-        <C {...this.props}/>
+        <C {...this.props} toast={this.toast} />
         : null;
     }
   }
@@ -41,12 +58,13 @@ export default function asyncComponent(importComponent) {
       updateRequestQuantity: getUpdateRequestQuantity(state),
       modalRequestQuantity: getModalRequestQuantity(state),
       error: getError(state),
+      user: getUser(state),
     };
   };
 
   const mapDispatchToProps = (dispatch) => {
     return {
-    //   ...bindActionCreators(customerActions, dispatch),
+      //   ...bindActionCreators(customerActions, dispatch),
     };
   };
 

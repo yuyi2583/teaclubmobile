@@ -3,4 +3,5 @@ const HOST=`${HOME}/mobile`;
 
 export default {
    login:()=>`${HOST}/login`,
+   verifyToken:(token)=>`${HOST}/verifyToken/${token}`,
 }

@@ -1,10 +1,10 @@
 import React, { Component } from "react";
 import { View, Text } from "react-native";
-import { WingBlank, InputItem, Flex, List, Button, Toast, Portal } from "@ant-design/react-native";
+import { WingBlank, InputItem, Flex, List, Button, Portal } from "@ant-design/react-native";
 import { actions as authActions, getUser } from "../../redux/modules/auth";
 import { bindActionCreators } from "redux";
 import { connect } from "react-redux";
-import { getData } from "../../utils/storage";
+import { getData, removeData } from "../../utils/storage";
 import { Redirect } from "react-router-native";
 import { TOKEN } from "../../utils/common";
 
@@ -20,19 +20,32 @@ class Login extends Component {
         getData(TOKEN)
             .then(token => {
                 if (token != null) {
-                    console.log("has token")
-                    this.setState({ redirect: true });
+                    console.log("has token", token);
+                    const key = this.props.toast("loading", 'Loading....', 0);
+                    this.props.verifyToken(token)
+                        .then(() => {
+                            Portal.remove(key);
+                            this.setState({ redirect: true });
+                        })
+                        .catch(err => {
+                            Portal.remove(key);
+                            this.props.toast("fail", err);
+                            removeData(TOKEN);
+                        })
                 }
+            })
+            .catch(err => {
+                console.log("no token");
             })
     }
 
     login = () => {
         const { id, password } = this.state;
         if (id.length == 0 || password.length == 0) {
-            Toast.fail("身份证或密码不能为空！");
+            this.props.toast("fail", "身份证或密码不能为空！");
             return;
         }
-        const key = Toast.loading('Loading....', 0);
+        const key = this.props.toast("loading", 'Loading....', 0);
         this.props.login(id, password)
             .then(() => {
                 Portal.remove(key);
@@ -40,7 +53,7 @@ class Login extends Component {
             })
             .catch(err => {
                 Portal.remove(key);
-                Toast.fail(err);
+                this.props.toast("fail", err);
             });
     }
 
