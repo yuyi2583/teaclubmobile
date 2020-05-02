@@ -39,7 +39,7 @@ export const actions = {
                 dispatch(appActions.finishRequest());
                 if (!result.error) {
                     console.log("result.data", result.data)
-                    result.data.token=token;
+                    result.data.token = token;
                     dispatch(loginSuccess(result.data));
                     return Promise.resolve();
                 } else {
@@ -59,6 +59,7 @@ const loginSuccess = (data) => {
         .catch(err => {
             console.log("store token error", err);
         })
+    data.avatar.photo = `data:image/jpeg;base64,${data.avatar.photo}`;
     return {
         type: types.LOGIN,
         user: data

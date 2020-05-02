@@ -27,9 +27,12 @@ const convertCustomersToPlainStructure = (data) => {
     let customers = new Array();
     let byCustomers = new Object();
     data.forEach(item => {
-        customers.push(item.customer.uid);
-        if (!byCustomers[item.customer.uid]) {
-            byCustomers[item.customer.uid] = { ...item.customer, image: item.image };
+        customers.push(item.uid);
+        if (!byCustomers[item.uid]) {
+            byCustomers[item.uid] = { ...item };
+            if(item.customer!=null||item.customer!=undefined){
+                byCustomers[item.uid]={...item.customer,...item};
+            }
         }
     });
     return {

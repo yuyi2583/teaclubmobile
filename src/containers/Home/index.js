@@ -1,9 +1,10 @@
 import React from "react";
-import { View, Text, Image } from "react-native";
-import { Flex } from "@ant-design/react-native";
+import { View, Text, Image, ScrollView, TouchableOpacity } from "react-native";
+import { Flex, Tabs } from "@ant-design/react-native";
 import { bindActionCreators } from "redux";
 import { connect } from "react-redux";
 import { actions as customersActions, getByCustomers, getCustomers } from "../../redux/modules/customer";
+import { getUser } from "../../redux/modules/auth";
 
 class Home extends React.Component {
     state = {
@@ -35,25 +36,34 @@ class Home extends React.Component {
     }
 
     render() {
-        const { customers, byCustomers } = this.props;
+        const { customers, byCustomers, user } = this.props;
+        const tabs = [
+            { title: 'First Tab' }
+        ];
+        const style = {
+            alignItems: 'center',
+            justifyContent: 'center',
+            height: 150,
+            backgroundColor: '#fff',
+        };
         return (
             <Flex style={{ width: "100%", height: "100%" }}>
                 <Flex.Item style={{ flex: 2, backgroundColor: "green" }}><Text>asdf</Text></Flex.Item>
                 <Flex.Item style={{ flex: 1, height: "100%", borderLeftWidth: 1, borderColor: "black" }}>
-                    <Flex direction="column">
-                        {
-                            customers.map(uid => (
-                                <Image
-                                    style={{
-                                        width: 100,
-                                        height: 100,
-                                        resizeMode: 'contain',
-                                    }}
-                                    key={uid}
-                                    source={{ uri: byCustomers[uid].image }} />
-                            ))
-                        }
+                    <Flex direction="column" style={{ width: "100%", height: "100%" }}>
 
+                        {/* {
+                                customers.map(uid => (
+                                    <Image
+                                        style={{
+                                            width: 100,
+                                            height: 100,
+                                            resizeMode: 'contain',
+                                        }}
+                                        key={uid}
+                                        source={{ uri: byCustomers[uid].image }} />
+                                ))
+                            } */}
                     </Flex>
                 </Flex.Item>
             </Flex>
@@ -65,6 +75,7 @@ const mapStateToProps = (state, props) => {
     return {
         customers: getCustomers(state),
         byCustomers: getByCustomers(state),
+        user: getUser(state),
     };
 };
 
