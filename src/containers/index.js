@@ -40,9 +40,6 @@ class Container extends React.Component {
     }
     render() {
         const { theme, currentTheme, isReady } = this.state;
-        // if (!isReady) {
-        //     return <AppLoading />;
-        // }
         return (
             <Provider theme={theme}>
                 <Router>
