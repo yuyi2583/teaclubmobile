@@ -14,3 +14,8 @@ export const orderStatus = {
     "complete": "完成",
     "rejectRefund":"卖家拒绝退款"
 }
+
+export const deliverMode={
+    "selfPickUp":"买家自提",
+    "deliver":"卖家配送",
+}

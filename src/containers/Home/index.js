@@ -6,12 +6,13 @@ import { connect } from "react-redux";
 import { actions as customersActions, getByCustomers, getCustomers, getByCustomerFaces, getCustomerFaces } from "../../redux/modules/customer";
 import { getUser } from "../../redux/modules/auth";
 import CustomerFace from "./components/CustomerFace";
-import { Switch, Route, Link } from "react-router-native";
+import { Switch, Route, Link, BackButton } from "react-router-native";
 import connectRoute from "../../utils/connectRoute";
 import asyncComponent from "../../utils/AsyncComponent";
 
 
 const AsyncCustomer = connectRoute(asyncComponent(() => import("../Customer")));
+const AsyncOrderDetail = connectRoute(asyncComponent(() => import("../OrderDetail")));
 
 const tabs = [
     { title: '当前店内顾客' },
@@ -57,21 +58,29 @@ class Home extends React.Component {
         const { customers, byCustomers, user, customerFaces, byCustomerFaces, match } = this.props;
         return (
             <Flex style={{ width: "100%", height: "100%" }}>
-                <Flex.Item style={{ flex: 2, height:"100%" }}>
+                <Flex.Item style={{ flex: 2, height: "100%" }}>
                     <Switch>
-                        <Route
-                            path={match.url}
-                            exact
-                            render={props =>
-                                <Text>clerk view</Text>
-                            }
-                        />
-                        <Route
-                            path={`${match.url}/customer/:faceId`}
-                            render={props =>
-                                <AsyncCustomer {...props} />
-                            }
-                        />
+                        <BackButton>
+                            <Route
+                                path={match.url}
+                                exact
+                                render={props =>
+                                    <Text>clerk view</Text>
+                                }
+                            />
+                            <Route
+                                path={`${match.url}/customer/:faceId`}
+                                render={props =>
+                                    <AsyncCustomer {...props} />
+                                }
+                            />
+                            <Route
+                                path={`${match.url}/order/:orderId`}
+                                render={props =>
+                                    <AsyncOrderDetail {...props} />
+                                }
+                            />
+                        </BackButton>
                     </Switch>
                 </Flex.Item>
                 <Flex.Item style={{ flex: 1, height: "100%", borderLeftWidth: 1, borderColor: "black" }}>
@@ -82,12 +91,12 @@ class Home extends React.Component {
                                     <ScrollView style={{ width: "100%" }}>
                                         {
                                             customerFaces.map(uid => (
-                                                <TouchableOpacity key={uid}>
-                                                    <Link
-                                                        to={`${match.url}/customer/${uid}`} >
-                                                        <CustomerFace content={byCustomerFaces[uid]} />
-                                                    </Link>
-                                                </TouchableOpacity>
+                                                <Link
+                                                    key={uid}
+                                                    component={TouchableOpacity}
+                                                    to={`${match.url}/customer/${uid}`} >
+                                                    <CustomerFace content={byCustomerFaces[uid]} />
+                                                </Link>
                                             ))
                                         }
                                     </ScrollView>

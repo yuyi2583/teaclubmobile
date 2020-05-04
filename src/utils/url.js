@@ -5,4 +5,5 @@ export default {
    login:()=>`${HOST}/login`,
    verifyToken:(token)=>`${HOST}/verifyToken/${token}`,
    fetchCustomer:(uid)=>`${HOST}/customer/${uid}`,
+   customerPickUp:()=>`${HOST}/ordershipped`,
 }

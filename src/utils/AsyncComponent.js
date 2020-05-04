@@ -30,15 +30,15 @@ export default function asyncComponent(importComponent) {
     toast = (type, message) => {
       switch (type) {
         case "success":
-          return Toast.success(message);
+          return Toast.success(message,3);
         case "fail":
-          return Toast.fail(message);
+          return Toast.fail(message,3);
         case "info":
-          return Toast.info(message);
+          return Toast.info(message,3);
         case "loading":
           return Toast.loading(message, 0);
         case "offline":
-          return Toast.offline(message);
+          return Toast.offline(message,3);
       }
     }
 
