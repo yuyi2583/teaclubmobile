@@ -51,7 +51,7 @@ class OrderDetail extends Component {
     pickUp = () => {
         const { orderId } = this.props.match.params;
         const { user } = this.props;
-        console.log("pick up",orderId,user);
+        console.log("pick up", orderId, user);
         Alert.alert(
             "确认？",
             "确认买家已提货？",
@@ -102,12 +102,15 @@ class OrderDetail extends Component {
                                             <Flex.Item>
                                                 <Text>订单状态</Text>
                                             </Flex.Item>
-                                            <Flex.Item style={{ flex: 2 }}>
-                                                <Text>{orderStatus[byOrders[orderId].status.status]}</Text>
+                                            <Flex.Item style={{ flex:  byOrders[orderId].deliverMode == "selfPickUp" && byOrders[orderId].status.status == "payed" ?2:3 }}>
+                                                <Text>{orderStatus[byOrders[orderId].status.status]}(处理人:{byOrders[orderId].status.processer.name})</Text>
                                             </Flex.Item>
-                                            <Flex.Item>
-                                                <Button type="primary" size="small" style={{ width: 80 }} onPress={this.pickUp}>提货</Button>
-                                            </Flex.Item>
+                                            {
+                                                byOrders[orderId].deliverMode == "selfPickUp" && byOrders[orderId].status.status == "payed" ?
+                                                    <Flex.Item>
+                                                        <Button type="primary" size="small" style={{ width: 80 }} onPress={this.pickUp}>提货</Button>
+                                                    </Flex.Item> : null
+                                            }
                                         </Flex>
                                     </List.Item>
                                     <List.Item>
