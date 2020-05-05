@@ -1,10 +1,19 @@
 import React, { Component } from "react";
-import { Text, View } from "react-native";
-import { Card, WhiteSpace, WingBlank, Flex, Button, ActivityIndicator, Tabs } from "@ant-design/react-native";
+import { Text, View, TouchableOpacity } from "react-native";
+import { Card, WhiteSpace, WingBlank, Flex, Button, ActivityIndicator, Tabs, Icon } from "@ant-design/react-native";
 import { bindActionCreators } from "redux";
 import { connect } from "react-redux";
 import { actions as customerActions, getCustomers, getByCustomers, getByCustomerFaces, getCustomerFaces } from "../../redux/modules/customer";
 import OrderList from "./components/OrderList";
+import { Link, Switch, Route } from "react-router-native";
+import { matchUrl } from "../../utils/commonUtils";
+import connectRoute from "../../utils/connectRoute";
+import asyncComponent from "../../utils/AsyncComponent";
+
+
+const AsyncAddOrderEntry = connectRoute(asyncComponent(() => import("./components/AddOrderEntry")));
+const AsyncBoxList = connectRoute(asyncComponent(() => import("../BoxList")));
+
 
 const tabs = [
     { title: '订单' },
@@ -73,11 +82,26 @@ class Customer extends Component {
                 </Flex.Item>
                 <Flex.Item style={{ flex: 5, width: "100%" }}>
                     <Tabs tabs={tabs}>
-                        <View>
-                            <OrderList {...this.props}/>
+                        <View style={{ padding: 10 }}>
+                            <Switch>
+                                <Route
+                                    path={this.props.match.url}
+                                    exact
+                                    render={props =>
+                                        <AsyncAddOrderEntry {...props} {...this.props} />
+                                    }
+                                />
+                                <Route
+                                    path={`${this.props.match.url}/box`}
+                                    render={props =>
+                                        <AsyncBoxList {...props} customerId={customerId}/>
+                                    }
+                                />
+                            </Switch>
+                            
                         </View>
-                        <View style={style}>
-                            <Text>Content of Second Tab</Text>
+                        <View>
+                            <OrderList {...this.props} />
                         </View>
                     </Tabs>
                 </Flex.Item>

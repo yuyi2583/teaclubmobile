@@ -4,7 +4,6 @@ import { Flex, Tabs, Card, WhiteSpace, WingBlank } from "@ant-design/react-nativ
 import { bindActionCreators } from "redux";
 import { connect } from "react-redux";
 import { actions as customersActions, getByCustomers, getCustomers, getByCustomerFaces, getCustomerFaces } from "../../redux/modules/customer";
-import { getUser } from "../../redux/modules/auth";
 import CustomerFace from "./components/CustomerFace";
 import { Switch, Route, Link, BackButton } from "react-router-native";
 import connectRoute from "../../utils/connectRoute";
@@ -13,6 +12,7 @@ import asyncComponent from "../../utils/AsyncComponent";
 
 const AsyncCustomer = connectRoute(asyncComponent(() => import("../Customer")));
 const AsyncOrderDetail = connectRoute(asyncComponent(() => import("../OrderDetail")));
+const AsyncBoxList = connectRoute(asyncComponent(() => import("../BoxList")));
 
 const tabs = [
     { title: '当前店内顾客' },
@@ -31,26 +31,55 @@ class Home extends React.Component {
     }
 
     componentDidMount() {
-        var ws = new WebSocket(`ws://192.168.1.228:8080/websocket/${this.props.user.uid}`);
-        ws.onopen = () => {
+        this.WebSocketBoxConnect();
+        this.WebSocketFaceConnect();
+    }
+
+    WebSocketFaceConnect = () => {
+        var wsface = new WebSocket(`ws://192.168.1.228:8080/websocket/face/${this.props.user.uid}`);
+        wsface.onopen = () => {
             // connection opened
-            ws.send('something'); // send a message
+            wsface.send('something'); // send a message
         };
 
-        ws.onmessage = (e) => {
+        wsface.onmessage = (e) => {
             // a message was received
-            console.log("receive message", JSON.parse(e.data));
+            console.log("wsface receive message", JSON.parse(e.data));
             this.props.receieveCustomerFaces(JSON.parse(e.data));
         };
 
-        ws.onerror = (e) => {
+        wsface.onerror = (e) => {
             // an error occurred
-            console.log("websocket error", e.message);
+            console.log("wsface websocket error", e.message);
         };
 
-        ws.onclose = (e) => {
+        wsface.onclose = (e) => {
             // connection closed
-            console.log("websocket close", e.code, e.reason);
+            console.log("wsface websocket close", e.code, e.reason);
+        };
+    }
+
+    WebSocketBoxConnect = () => {
+        var wsbox = new WebSocket(`ws://192.168.1.228:8080/websocket/box/${this.props.user.shop.uid}`);
+        wsbox.onopen = () => {
+            // connection opened
+            wsbox.send('something'); // send a message
+        };
+
+        wsbox.onmessage = (e) => {
+            // a message was received
+            console.log("wsbox receive message", JSON.parse(e.data));
+            // this.props.receieveCustomerFaces(JSON.parse(e.data));
+        };
+
+        wsbox.onerror = (e) => {
+            // an error occurred
+            console.log("wsbox websocket error", e.message);
+        };
+
+        wsbox.onclose = (e) => {
+            // connection closed
+            console.log("wsbox websocket close", e.code, e.reason);
         };
     }
 
@@ -65,7 +94,7 @@ class Home extends React.Component {
                                 path={match.url}
                                 exact
                                 render={props =>
-                                    <Text>clerk view</Text>
+                                    <AsyncBoxList {...props} />
                                 }
                             />
                             <Route
@@ -119,7 +148,6 @@ const mapStateToProps = (state, props) => {
         byCustomers: getByCustomers(state),
         customerFaces: getCustomerFaces(state),
         byCustomerFaces: getByCustomerFaces(state),
-        user: getUser(state),
     };
 };
 
