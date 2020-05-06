@@ -6,4 +6,6 @@ export default {
    verifyToken:(token)=>`${HOST}/verifyToken/${token}`,
    fetchCustomer:(uid)=>`${HOST}/customer/${uid}`,
    customerPickUp:()=>`${HOST}/ordershipped`,
+   fetchBoxes:(shopId)=>`${HOST}/boxes/${shopId}`,
+   fetchReservations:(boxId,startTime,endTime)=>`${HOST}/reservations/${boxId}/${startTime}/${endTime}`,
 }

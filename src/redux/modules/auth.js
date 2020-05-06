@@ -4,6 +4,7 @@ import { post, get } from "../../utils/request";
 import url from "../../utils/url";
 import { storeData } from "../../utils/storage";
 import { TOKEN } from "../../utils/common";
+import { getNDayTimeString, timeStringConvertToTimeStamp } from "../../utils/timeUtils";
 
 const initialState = {
     user: new Object(),
@@ -26,9 +27,7 @@ export const actions = {
                 dispatch(appActions.finishRequest());
                 if (!result.error) {
                     console.log("result.data", result.data)
-                    let data = convertUserToPlainStructure(result.data);
-                    dispatch(loginSuccess(data));
-                    dispatch(boxActions.fetchBoxes(data))
+                    dispatch(loginSuccess(convertUserToPlainStructure(result.data)));
                     return Promise.resolve();
                 } else {
                     dispatch(appActions.setError(result.error));
@@ -47,7 +46,6 @@ export const actions = {
                     result.data.token = token;
                     let data = convertUserToPlainStructure(result.data);
                     dispatch(loginSuccess(data));
-                    dispatch(boxActions.fetchBoxes(data))
                     return Promise.resolve();
                 } else {
                     dispatch(appActions.setError(result.error));
@@ -59,27 +57,22 @@ export const actions = {
 }
 
 const convertUserToPlainStructure = (data) => {
-    let user = new Object();
     let shop = new Object();
-    let boxes = new Array();
-    let byBoxes = new Object();
     shop = data.shop;
-    try {
-        shop.shopBoxes.forEach(box => {
-            boxes.push(box.uid);
-            if (!byBoxes[box.uid]) {
-                byBoxes[box.uid] = box;
-            }
-        });
-        shop.shopBoxes=boxes;
-    }catch{
-        shop = data.shop;
-    }
+    const { openHours } = shop;
+    const dayOfWeek = new Date().getDay() + "";
+    let todayOpenHour = new Object();
+    openHours.forEach(item => {
+        if (item.date.indexOf(dayOfWeek) != -1) {
+            const { startTime, endTime } = item;
+            const today = getNDayTimeString();
+            todayOpenHour = { ...item, startTime: timeStringConvertToTimeStamp(today + startTime), endTime: timeStringConvertToTimeStamp(today + endTime) };
+        }
+    })
+    shop.todayOpenHour = todayOpenHour;
     return {
         user: data,
         shop,
-        boxes,
-        byBoxes
     }
 }
 

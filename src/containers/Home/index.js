@@ -13,6 +13,7 @@ import asyncComponent from "../../utils/AsyncComponent";
 const AsyncCustomer = connectRoute(asyncComponent(() => import("../Customer")));
 const AsyncOrderDetail = connectRoute(asyncComponent(() => import("../OrderDetail")));
 const AsyncBoxList = connectRoute(asyncComponent(() => import("../BoxList")));
+const AsyncBoxDetail = connectRoute(asyncComponent(() => import("../BoxDetail")));
 
 const tabs = [
     { title: '当前店内顾客' },
@@ -107,6 +108,12 @@ class Home extends React.Component {
                                 path={`${match.url}/order/:orderId`}
                                 render={props =>
                                     <AsyncOrderDetail {...props} />
+                                }
+                            />
+                            <Route
+                                path={`${match.url}/box/:boxId`}
+                                render={props =>
+                                    <AsyncBoxDetail {...props} />
                                 }
                             />
                         </BackButton>
