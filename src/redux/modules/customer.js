@@ -1,5 +1,5 @@
 import { actions as appActions } from "./app";
-import {actions as orderActions} from "./order";
+import { actions as orderActions } from "./order";
 import { post, get } from "../../utils/request";
 import url from "../../utils/url";
 import { storeData } from "../../utils/storage";
@@ -10,12 +10,14 @@ const initialState = {
     byCustomerFaces: new Object(),
     customers: new Array(),
     byCustomers: new Object(),
+    currentCustomer: new Object(),
 }
 
 //action types
 export const types = {
     RECEIEVE_CUSTOMER_FACES: "CUSTOMER/RECEIEVE_CUSTOMER_FACES",//websocket获取当前人脸识别到的客户信息
     FETCH_CUSTOMER: "CUSTOMER/FETCH_CUSTOMER",
+    CURRENT_CUSTOMER: "CUSTOMER/CURRENT_CUSTOMER",
 };
 
 //action creators
@@ -44,6 +46,14 @@ export const actions = {
                     dispatch(appActions.setError(result.error));
                     return Promise.reject(result.error);
                 }
+            });
+        }
+    },
+    setCurrentCustomer: (faceId) => {
+        return (dispatch) => {
+            dispatch({
+                type: types.CURRENT_CUSTOMER,
+                uid:faceId
             });
         }
     }
@@ -106,6 +116,8 @@ const reducer = (state = initialState, action) => {
     let customerFaces;
     let byCustomerFaces
     switch (action.type) {
+        case types.CURRENT_CUSTOMER:
+            return { ...state, currentCustomer: state.byCustomerFaces[action.uid] };
         case types.RECEIEVE_CUSTOMER_FACES:
             customerFaces = state.customerFaces;
             byCustomerFaces = state.byCustomerFaces;
@@ -117,9 +129,8 @@ const reducer = (state = initialState, action) => {
             })
             return { ...state, customerFaces, byCustomerFaces };
         case types.FETCH_CUSTOMER:
-            customers = state.customers;
-            if (customers.indexOf(action.customer.uid) == -1) {
-                customers.push(action.customer.uid);
+            if (state.customers.indexOf(action.customer.uid) == -1) {
+                customers = state.customers.concat([action.customer.uid]);
             }
             byCustomers = { ...state.byCustomers, [action.customer.uid]: action.customer };
             return { ...state, customers, byCustomers };
@@ -135,3 +146,4 @@ export const getCustomers = (state) => state.customer.customers;
 export const getByCustomers = (state) => state.customer.byCustomers;
 export const getCustomerFaces = (state) => state.customer.customerFaces;
 export const getByCustomerFaces = (state) => state.customer.byCustomerFaces;
+export const getCurrentCustomer = (state) => state.customer.currentCustomer;

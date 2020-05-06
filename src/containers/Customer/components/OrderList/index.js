@@ -30,7 +30,6 @@ class OrderList extends Component {
         const hasRegister = customerId != undefined;
         const isDataNull = byCustomers[customerId] == undefined;
         const { refreshing } = this.state;
-        console.log("match url in order list",this.props.match.url);
         //TODO 未注册用户
         if (isDataNull) {
             return (
@@ -56,7 +55,7 @@ class OrderList extends Component {
                                     key={uid}
                                     to={{
                                         pathname: matchUrl.ORDERDETAIL(uid),
-                                        state:{from:this.props.match.url}
+                                        state: { from: this.props.match.url }
                                     }}
                                     component={TouchableOpacity}>
                                     <WingBlank size="lg" style={{ marginTop: 10 }}>

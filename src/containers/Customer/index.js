@@ -4,6 +4,7 @@ import { Card, WhiteSpace, WingBlank, Flex, Button, ActivityIndicator, Tabs, Ico
 import { bindActionCreators } from "redux";
 import { connect } from "react-redux";
 import { actions as customerActions, getCustomers, getByCustomers, getByCustomerFaces, getCustomerFaces } from "../../redux/modules/customer";
+import { actions as newOrderActions, getSelectedSlot } from "../../redux/modules/newOrder";
 import OrderList from "./components/OrderList";
 import { Link, Switch, Route } from "react-router-native";
 import { matchUrl } from "../../utils/commonUtils";
@@ -13,6 +14,7 @@ import asyncComponent from "../../utils/AsyncComponent";
 
 const AsyncAddOrderEntry = connectRoute(asyncComponent(() => import("./components/AddOrderEntry")));
 const AsyncBoxList = connectRoute(asyncComponent(() => import("../BoxList")));
+const AsyncBoxDetail = connectRoute(asyncComponent(() => import("../BoxDetail")));
 
 
 const tabs = [
@@ -44,6 +46,39 @@ class Customer extends Component {
             })
     }
 
+    getButtonDispaly = () => {
+        const { pathname } = this.props.location;
+        "/mobile/customer/3/box/4"
+        var reservationRegex = /\/mobile\/customer\/\d+\/box\/\d+/;
+        let display = null;
+        if (reservationRegex.test(pathname)) {
+            display = <Button type="primary" size="lg" style={{ width: 100, height: 30 }} onPress={this.reservation}>确认预约</Button>;
+        }
+        return display;
+
+    }
+
+    reservation = () => {
+        const { pathname } = this.props.location;
+        const pathnameSplit = pathname.split("/")
+        const boxId = pathnameSplit[pathnameSplit.length - 1];
+        const { currentCustomer, user, selectedSlot } = this.props;
+        //TODO 区分是否注册
+        const reservations = selectedSlot.map(reservationTime => ({ reservationTime, boxId }))
+        const order = {
+            customer: { uid: currentCustomer.customerId },
+            clerk: { uid: user.uid },
+            reservations,
+        }
+        this.props.reserve(order)
+            .then(() => {
+
+            })
+            .catch(err => {
+                this.props.toast("fail", err);
+            })
+    }
+
     render() {
         const { byCustomerFaces, byCustomers } = this.props;
         const { faceId } = this.props.match.params;
@@ -58,7 +93,7 @@ class Customer extends Component {
                 </View>
             )
         }
-
+        const displayButton = this.getButtonDispaly();
         return (
             <Flex direction="column" style={{ width: "100%", height: "100%" }}>
                 <Flex.Item style={{ flex: 1, width: "100%" }}>
@@ -74,7 +109,8 @@ class Customer extends Component {
                                         justifyContent: 'flex-end',
                                         alignItems: 'center',
                                     }}
-                                ><Button type="primary" size="lg" style={{ width: 100, height: 30 }}>新增订单</Button>
+                                >
+                                    {displayButton}
                                 </WingBlank>
                             }
                         />
@@ -93,12 +129,19 @@ class Customer extends Component {
                                 />
                                 <Route
                                     path={`${this.props.match.url}/box`}
+                                    exact
                                     render={props =>
-                                        <AsyncBoxList {...props} customerId={customerId}/>
+                                        <AsyncBoxList {...props} customerId={customerId} />
+                                    }
+                                />
+                                <Route
+                                    path={`${this.props.match.url}/box/:boxId`}
+                                    render={props =>
+                                        <AsyncBoxDetail {...props} />
                                     }
                                 />
                             </Switch>
-                            
+
                         </View>
                         <View>
                             <OrderList {...this.props} />
@@ -116,12 +159,14 @@ const mapStateToProps = (state, props) => {
         byCustomers: getByCustomers(state),
         customerFaces: getCustomerFaces(state),
         byCustomerFaces: getByCustomerFaces(state),
+        selectedSlot: getSelectedSlot(state),
     };
 };
 
 const mapDispatchToProps = (dispatch) => {
     return {
         ...bindActionCreators(customerActions, dispatch),
+        ...bindActionCreators(newOrderActions, dispatch),
     };
 };
 

@@ -8,9 +8,15 @@ import { Link } from "react-router-native";
 import { matchUrl } from "../../utils/commonUtils";
 
 class BoxList extends Component {
+    state={
+        isReservation:false,//false=只展示预约列表，true=需要选取包厢时间段预约
+    }
 
     componentDidMount() {
         console.log("box list url", this.props.match.url);
+        if(this.props.match.url.indexOf("customer")>0){
+            this.setState({isReservation:true});
+        }
         const shopId = this.props.shop.uid;
         this.props.fetchBoxes(shopId);
     }
@@ -43,6 +49,7 @@ class BoxList extends Component {
             )
         }
         const isOpen = shop.todayOpenHour.startTime != undefined;
+        const {isReservation}=this.state;
         return (
             <View style={{ height: "100%" }}>
                 <ScrollView style={{ height: "100%" }}>
@@ -50,8 +57,8 @@ class BoxList extends Component {
                         boxes.map(uid => (
                             <Link
                                 to={{
-                                    pathname: matchUrl.BOXDETAIL(uid),
-                                    state: { from: this.props.match.url }
+                                    pathname: isReservation?`${this.props.match.url}/${uid}`:matchUrl.BOXDETAIL(uid),
+                                    state: { from: this.props.match.url,isReservation }
                                 }}
                                 component={TouchableOpacity}
                                 key={uid}>

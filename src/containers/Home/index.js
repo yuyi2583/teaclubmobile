@@ -130,6 +130,7 @@ class Home extends React.Component {
                                                 <Link
                                                     key={uid}
                                                     component={TouchableOpacity}
+                                                    onPress={()=>this.props.setCurrentCustomer(uid)}
                                                     to={`${match.url}/customer/${uid}`} >
                                                     <CustomerFace content={byCustomerFaces[uid]} />
                                                 </Link>

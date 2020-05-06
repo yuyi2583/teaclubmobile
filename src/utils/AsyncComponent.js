@@ -4,6 +4,7 @@ import { bindActionCreators } from "redux";
 import { connect } from "react-redux";
 import { Toast } from "@ant-design/react-native";
 import { getUser, getShop } from "../redux/modules/auth";
+import { getCurrentCustomer } from "../redux/modules/customer";
 
 //此高阶组件作用为代码分片
 
@@ -30,15 +31,15 @@ export default function asyncComponent(importComponent) {
     toast = (type, message) => {
       switch (type) {
         case "success":
-          return Toast.success(message, 3);
+          return Toast.success(message, 5);
         case "fail":
-          return Toast.fail(message, 3);
+          return Toast.fail(message, 5);
         case "info":
-          return Toast.info(message, 3);
+          return Toast.info(message, 5);
         case "loading":
           return Toast.loading(message, 0);
         case "offline":
-          return Toast.offline(message, 3);
+          return Toast.offline(message, 5);
       }
     }
 
@@ -60,6 +61,7 @@ export default function asyncComponent(importComponent) {
       error: getError(state),
       user: getUser(state),
       shop: getShop(state),
+      currentCustomer: getCurrentCustomer(state),
     };
   };
 

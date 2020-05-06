@@ -8,4 +8,5 @@ export default {
    customerPickUp:()=>`${HOST}/ordershipped`,
    fetchBoxes:(shopId)=>`${HOST}/boxes/${shopId}`,
    fetchReservations:(boxId,startTime,endTime)=>`${HOST}/reservations/${boxId}/${startTime}/${endTime}`,
+   reserve:()=>`${HOST}/reserve`,
 }
