@@ -8,12 +8,14 @@ import CustomerFace from "./components/CustomerFace";
 import { Switch, Route, Link, BackButton } from "react-router-native";
 import connectRoute from "../../utils/connectRoute";
 import asyncComponent from "../../utils/AsyncComponent";
+import {ws} from "../../utils/url";
 
 
 const AsyncCustomer = connectRoute(asyncComponent(() => import("../Customer")));
 const AsyncOrderDetail = connectRoute(asyncComponent(() => import("../OrderDetail")));
 const AsyncBoxList = connectRoute(asyncComponent(() => import("../BoxList")));
 const AsyncBoxDetail = connectRoute(asyncComponent(() => import("../BoxDetail")));
+const AsyncPay = connectRoute(asyncComponent(() => import("../Pay")));
 
 const tabs = [
     { title: '当前店内顾客' },
@@ -37,7 +39,7 @@ class Home extends React.Component {
     }
 
     WebSocketFaceConnect = () => {
-        var wsface = new WebSocket(`ws://192.168.1.228:8080/websocket/face/${this.props.user.uid}`);
+        var wsface = new WebSocket(ws.face(this.props.user.uid));
         wsface.onopen = () => {
             // connection opened
             wsface.send('something'); // send a message
@@ -61,7 +63,7 @@ class Home extends React.Component {
     }
 
     WebSocketBoxConnect = () => {
-        var wsbox = new WebSocket(`ws://192.168.1.228:8080/websocket/box/${this.props.user.shop.uid}`);
+        var wsbox = new WebSocket(ws.box(this.props.user.shop.uid));
         wsbox.onopen = () => {
             // connection opened
             wsbox.send('something'); // send a message
@@ -114,6 +116,12 @@ class Home extends React.Component {
                                 path={`${match.url}/box/:boxId`}
                                 render={props =>
                                     <AsyncBoxDetail {...props} />
+                                }
+                            />
+                            <Route
+                                path={`${match.url}/pay/:customerId`}
+                                render={props =>
+                                    <AsyncPay {...props} />
                                 }
                             />
                         </BackButton>

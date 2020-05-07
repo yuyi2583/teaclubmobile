@@ -47,6 +47,28 @@ export const actions = {
                     dispatch({ type: types.RESET_AFTER_COMPLETE_RESERVATION });
                     return Promise.resolve();
                 } else {
+                    console.log("result",result);
+                    dispatch(appActions.setError(result));
+                    return Promise.reject(result);
+                }
+            });
+        }
+    },
+    resetAfterCompleteReservation:()=>{
+        return (dispatch=>{
+            dispatch({ type: types.RESET_AFTER_COMPLETE_RESERVATION });
+        })
+    },
+    pay:(customerId)=>{
+        return(dispatch)=>{
+            dispatch(appActions.startRequest());
+            return get(url.pay(customerId)).then((result) => {
+                dispatch(appActions.finishRequest());
+                if (!result.error) {
+                    console.log("result.data", result.data)
+                    return Promise.resolve();
+                } else {
+                    console.log("result",result);
                     dispatch(appActions.setError(result.error));
                     return Promise.reject(result.error);
                 }

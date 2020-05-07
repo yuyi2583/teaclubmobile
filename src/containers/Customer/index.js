@@ -7,7 +7,7 @@ import { actions as customerActions, getCustomers, getByCustomers, getByCustomer
 import { actions as newOrderActions, getSelectedSlot } from "../../redux/modules/newOrder";
 import { getByBoxes } from "../../redux/modules/box";
 import OrderList from "./components/OrderList";
-import { Link, Switch, Route } from "react-router-native";
+import { Link, Switch, Route, Redirect } from "react-router-native";
 import { matchUrl } from "../../utils/commonUtils";
 import connectRoute from "../../utils/connectRoute";
 import asyncComponent from "../../utils/AsyncComponent";
@@ -34,6 +34,7 @@ const style = {
 class Customer extends Component {
     state = {
         hasRegister: true,
+        redirectTo: null,
     }
 
     componentDidMount() {
@@ -50,7 +51,6 @@ class Customer extends Component {
 
     getButtonDispaly = () => {
         const { pathname } = this.props.location;
-        "/mobile/customer/3/box/4"
         var reservationRegex = /\/mobile\/customer\/\d+\/box\/\d+/;
         let display = null;
         if (reservationRegex.test(pathname)) {
@@ -91,8 +91,7 @@ class Customer extends Component {
         const order = {
             customer: { uid: currentCustomer.customerId },
             clerk: { uid: user.uid, name: user.name },
-            reservations,
-            amount: { ingot, credit }
+            reservations
         }
         Alert.alert(
             "确认预约？",
@@ -109,7 +108,28 @@ class Customer extends Component {
 
                             })
                             .catch(err => {
-                                this.props.toast("fail", err, 8);
+                                console.log("err",err);
+                                if (err.code == 500700) {//余额不足，跳转付费二维码
+                                    Alert.alert(
+                                        "余额不足",
+                                        `${err.error}`,
+                                        [
+                                            {
+                                                text: "取消",
+                                                style: "cancel"
+                                            },
+                                            {
+                                                text: "充值", onPress: () => {
+                                                    this.props.resetAfterCompleteReservation();
+                                                    this.props.history.push(`/mobile/pay/${currentCustomer.customerId}`);
+                                                }
+                                            }
+                                        ],
+                                        { cancelable: false }
+                                    );
+                                    return;
+                                }
+                                this.props.toast("fail", err.error, 8);
                             })
                     }
                 }
@@ -124,6 +144,16 @@ class Customer extends Component {
         const customerId = byCustomerFaces[faceId].customerId;
         const hasRegister = customerId != undefined;
         const isDataNull = byCustomers[customerId] == undefined;
+        const { redirectTo } = this.state;
+        if (redirectTo) {
+            return <Redirect
+                to={{
+                    pathname: redirectTo,
+                    state: { from: this.props.location.pathname }
+                }}
+            />
+
+        }
         //TODO 未注册用户
         if (isDataNull) {
             return (
