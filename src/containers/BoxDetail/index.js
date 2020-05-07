@@ -37,8 +37,8 @@ class BoxDetail extends Component {
             const duration = byBoxes[boxId].duration * 1000 * 60;
             const slotNum = Math.floor((endTime - startTime) / duration);
             for (let i = 0; i < slotNum; i++) {
-                const filterResult = byBoxes[boxId].reservations.filter(uid => {
-                    if (byReservations[uid].reservationTime == (startTime + i * duration)) {
+                const filterResult = byBoxes[boxId].reservations.filter(reservationTime => {
+                    if (reservationTime == (startTime + i * duration)) {
                         return true;
                     }
                     return false;
@@ -53,7 +53,7 @@ class BoxDetail extends Component {
                 }
                 display.push(
                     <WingBlank size="lg" key={i}>
-                        <TouchableOpacity disabled={!isReservation} onPress={() => this.clickSlot(startTime + i * duration, startTime + (i + 1) * duration)}>
+                        <TouchableOpacity disabled={!isReservation || isReserved} onPress={() => this.clickSlot(startTime + i * duration, startTime + (i + 1) * duration)}>
                             <Card style={{ backgroundColor: isClickReserve ? "#3CB371" : isReserved ? "#108EE9" : "white" }}>
                                 <Card.Header
                                     title={`${convertTimestampToHHMM(startTime + i * duration)}~${convertTimestampToHHMM(startTime + (i + 1) * duration)}`}
@@ -94,6 +94,12 @@ class BoxDetail extends Component {
         const tomorrow = this.state.day + 1;
         this.setState({ day: tomorrow });
         this.props.fetchReservations(boxId, getNDaysTimeStamp(tomorrow), getNDaysTimeStamp(tomorrow + 1))
+            .then(() => {
+
+            })
+            .catch(err => {
+                this.props.toast("fail", err, 6);
+            })
     }
 
     forwardDay = () => {
@@ -101,6 +107,37 @@ class BoxDetail extends Component {
         const yesterday = this.state.day - 1;
         this.setState({ day: yesterday });
         this.props.fetchReservations(boxId, getNDaysTimeStamp(yesterday), getNDaysTimeStamp(yesterday + 1))
+            .then(() => {
+
+            })
+            .catch(err => {
+                this.props.toast("fail", err, 6);
+            })
+    }
+
+    componentDidMount() {
+        const { boxId } = this.props.match.params;
+        this.props.fetchReservations(boxId, getNDaysTimeStamp(this.state.day), getNDaysTimeStamp(this.state.day + 1))
+            .then(() => {
+
+            })
+            .catch(err => {
+                this.props.toast("fail", err, 6);
+            })
+    }
+
+    getPriceDisplay = () => {
+        let display = "每泡茶时间：";
+        const { boxId } = this.props.match.params;
+        const { price, duration } = this.props.byBoxes[boxId];
+        display += `${duration}分钟 价格：`;
+        if (price.ingot != 0) {
+            display += `${price.ingot}元宝 `;
+        }
+        if (price.credit != 0) {
+            display += `${price.credit}积分 `;
+        }
+        return display;
     }
 
     render() {
@@ -110,6 +147,7 @@ class BoxDetail extends Component {
         const duration = byBoxes[boxId].duration * 1000 * 60;
         const slot = this.getReservationSlotDisplay();
         const { isReservation } = this.props.location.state;
+        const priceDisplay = this.getPriceDisplay();
         return (
             <View style={{ height: "100%" }}>
                 <Flex direction="column" style={{ width: "100%", height: "100%" }}>
@@ -118,6 +156,7 @@ class BoxDetail extends Component {
                             <Flex.Item>{isReservation ? null : <BackArrow {...this.props} />}</Flex.Item>
                             <Flex.Item style={{ flex: 10 }}>
                                 <Text style={{ textAlign: "center" }}>{getNDayTimeString(this.state.day)}日预约信息</Text>
+                                <Text style={{ textAlign: "center" }}>{priceDisplay}</Text>
                             </Flex.Item>
                             <Flex.Item></Flex.Item>
                         </Flex>

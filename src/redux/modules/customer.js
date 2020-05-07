@@ -18,6 +18,7 @@ export const types = {
     RECEIEVE_CUSTOMER_FACES: "CUSTOMER/RECEIEVE_CUSTOMER_FACES",//websocket获取当前人脸识别到的客户信息
     FETCH_CUSTOMER: "CUSTOMER/FETCH_CUSTOMER",
     CURRENT_CUSTOMER: "CUSTOMER/CURRENT_CUSTOMER",
+    ADD_CUSTOMER_ORDER: "CUSTOMER/ADD_CUSTOMER_ORDER",
 };
 
 //action creators
@@ -53,8 +54,17 @@ export const actions = {
         return (dispatch) => {
             dispatch({
                 type: types.CURRENT_CUSTOMER,
-                uid:faceId
+                uid: faceId
             });
+        }
+    },
+    addCustomerOrder: (customerId, orderId) => {
+        return (dispatch) => {
+            dispatch({
+                type: types.ADD_CUSTOMER_ORDER,
+                customerId,
+                orderId
+            })
         }
     }
 }
@@ -116,6 +126,9 @@ const reducer = (state = initialState, action) => {
     let customerFaces;
     let byCustomerFaces
     switch (action.type) {
+        case types.ADD_CUSTOMER_ORDER:
+            byCustomers = { ...state.byCustomers, [action.customerId]: { ...state.byCustomers[action.customerId], orders: state.byCustomers[action.customerId].orders.concat([action.orderId]) } };
+            return { ...state, byCustomers };
         case types.CURRENT_CUSTOMER:
             return { ...state, currentCustomer: state.byCustomerFaces[action.uid] };
         case types.RECEIEVE_CUSTOMER_FACES:

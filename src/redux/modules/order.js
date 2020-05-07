@@ -1,4 +1,5 @@
 import { actions as appActions } from "./app";
+import {actions as customerActions} from "./customer";
 import { post, get, put } from "../../utils/request";
 import url from "../../utils/url";
 import { storeData } from "../../utils/storage";
@@ -14,6 +15,7 @@ const initialState = {
 export const types = {
     FETCH_CUSTOMER_ORDERS: "ORDERS/FETCH_CUSTOMER_ORDERS",
     CUSTOMER_PICK_UP: "ORDERS/CUSTOMER_PICK_UP",
+    COMPLETE_RESERVATION: "ORDERS/COMPLETE_RESERVATION",
 };
 
 //action creators
@@ -40,6 +42,16 @@ export const actions = {
                     return Promise.reject(result.error);
                 }
             });
+        }
+    },
+    //客户完成包厢预约
+    completeReservation: (data) => {
+        return (dispatch) => {
+            dispatch({
+                type: types.COMPLETE_RESERVATION,
+                order: data
+            });
+            dispatch(customerActions.addCustomerOrder(data.customer.uid,data.uid));
         }
     }
 }
@@ -99,6 +111,10 @@ const reducer = (state = initialState, action) => {
     let byOrders;
     let byProducts;
     switch (action.type) {
+        case types.COMPLETE_RESERVATION:
+            orders = state.orders.concat([action.order.uid]);
+            byOrders = { ...state.byOrders, [action.order.uid]: action.order };
+            return { ...state, orders, byOrders };
         case types.CUSTOMER_PICK_UP:
             products = state.products;
             byProducts = state.byProducts;

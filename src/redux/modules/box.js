@@ -57,9 +57,9 @@ const convertReservationsToPlainStructure = (data) => {
     let byReservations = new Object();
     let reservations = new Array();
     data.forEach(reservation => {
-        reservations.push(reservation.uid);
-        if (!byReservations[reservation.uid]) {
-            byReservations[reservation.uid] = reservation;
+        reservations.push(reservation.reservationTime);
+        if (!byReservations[reservation.reservationTime]) {
+            byReservations[reservation.reservationTime] = reservation;
         }
     });
     return {
@@ -86,9 +86,9 @@ const convertBoxesToPlainStructure = (data) => {
             byBoxes[box.uid] = box;
         }
         box.reservations.forEach(reservation => {
-            reservations.push(reservation.uid);
-            if (!byReservations[reservation.uid]) {
-                byReservations[reservation.uid] = reservation;
+            reservations.push(reservation.reservationTime);
+            if (!byReservations[reservation.reservationTime]) {
+                byReservations[reservation.reservationTime] = reservation;
             }
         });
         byBoxes[box.uid].reservations = reservations;
@@ -115,7 +115,13 @@ const reducer = (state = initialState, action) => {
     let tempBox;
     switch (action.type) {
         case types.FETCH_RESERVATIONS:
-            byBoxes = { ...state.byBoxes, [action.boxId]: { ...state.byBoxes[action.boxId], reservations: state.byBoxes[action.boxId].reservations.concat(action.reservations) } };
+            byBoxes = {
+                ...state.byBoxes,
+                [action.boxId]: {
+                    ...state.byBoxes[action.boxId],
+                    reservations: state.byBoxes[action.boxId].reservations.concat(action.reservations.filter(time => state.byBoxes[action.boxId].reservations.indexOf(time) == -1))
+                }
+            };
             byReservations = { ...state.byReservations, ...action.byReservations };
             return { ...state, byBoxes, byReservations };
         case types.FETCH_BOXES:

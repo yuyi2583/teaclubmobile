@@ -7,6 +7,7 @@ export const requestType = {
 export const TOKEN="token";
 
 export const orderStatus = {
+    "unpay":"未付款",
     "payed": "买家已付款",
     "shipped": "卖家已发货",
     "requestRefund":"买家申请退款",

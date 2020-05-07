@@ -4,6 +4,7 @@ import { Card, WingBlank, ActivityIndicator, Flex } from "@ant-design/react-nati
 import { bindActionCreators } from "redux";
 import { connect } from "react-redux";
 import { actions as orderActions, getByOrders, getOrders, getByProducts } from "../../../../redux/modules/order";
+import { actions as boxActions, getByBoxes } from "../../../../redux/modules/box";
 import { actions as customerActions, getByCustomerFaces, getByCustomers, getCustomerFaces, getCustomers } from "../../../../redux/modules/customer";
 import { timeStampConvertToFormatTime } from "../../../../utils/timeUtils";
 import { orderStatus } from "../../../../utils/common";
@@ -24,7 +25,7 @@ class OrderList extends Component {
     };
 
     render() {
-        const { byCustomers, byOrders, byCustomerFaces, byProducts } = this.props;
+        const { byCustomers, byOrders, byCustomerFaces, byProducts, byBoxes } = this.props;
         const { faceId } = this.props.match.params;
         const customerId = byCustomerFaces[faceId].customerId;
         const hasRegister = customerId != undefined;
@@ -67,23 +68,21 @@ class OrderList extends Component {
                                             <Card.Body>
                                                 <Flex direction="column" style={{ alignItems: "flex-start", margin: 16 }}>
                                                     {
-                                                        byOrders[uid].products.length == 0 ?
-                                                            <Text>无产品信息</Text> :
-                                                            byOrders[uid].products.length <= 3 ?
-                                                                byOrders[uid].products.map(uid => (
-                                                                    <Flex.Item key={uid}>
-                                                                        <Flex direction="row" style={{ width: "100%" }}>
-                                                                            <Flex.Item style={{ flex: 1 }}>
-                                                                                <Text>{byProducts[uid].product.name}</Text>
-                                                                            </Flex.Item>
-                                                                            <Flex.Item style={{ flex: 2 }}>
-                                                                                <Text>x{byProducts[uid].number}</Text>
-                                                                            </Flex.Item>
-                                                                        </Flex>
-                                                                    </Flex.Item>
-                                                                ))
-                                                                : <>
-                                                                    {byOrders[uid].products.filter((uid, index) => index < 3).map(uid => (
+                                                        byOrders[uid].reservations.length > 0 ?
+                                                            <>
+                                                                <Text>包厢预约：{byBoxes[byOrders[uid].reservations[0].boxId].name}</Text>
+                                                                <Text>时间段：</Text>
+                                                                {
+                                                                    byOrders[uid].reservations.map((reservation,index) => (
+                                                                        <Text key={index}>{timeStampConvertToFormatTime(reservation.reservationTime)}~{timeStampConvertToFormatTime(reservation.reservationTime+byBoxes[byOrders[uid].reservations[0].boxId].duration*1000*60)}</Text>
+                                                                    ))
+                                                                }
+
+                                                            </>
+                                                            : byOrders[uid].products.length == 0 ?
+                                                                <Text>无产品信息</Text> :
+                                                                byOrders[uid].products.length <= 3 ?
+                                                                    byOrders[uid].products.map(uid => (
                                                                         <Flex.Item key={uid}>
                                                                             <Flex direction="row" style={{ width: "100%" }}>
                                                                                 <Flex.Item style={{ flex: 1 }}>
@@ -94,11 +93,24 @@ class OrderList extends Component {
                                                                                 </Flex.Item>
                                                                             </Flex>
                                                                         </Flex.Item>
-                                                                    ))}
-                                                                    < Flex.Item >
-                                                                        <Text>......</Text>
-                                                                    </Flex.Item>
-                                                                </>
+                                                                    ))
+                                                                    : <>
+                                                                        {byOrders[uid].products.filter((uid, index) => index < 3).map(uid => (
+                                                                            <Flex.Item key={uid}>
+                                                                                <Flex direction="row" style={{ width: "100%" }}>
+                                                                                    <Flex.Item style={{ flex: 1 }}>
+                                                                                        <Text>{byProducts[uid].product.name}</Text>
+                                                                                    </Flex.Item>
+                                                                                    <Flex.Item style={{ flex: 2 }}>
+                                                                                        <Text>x{byProducts[uid].number}</Text>
+                                                                                    </Flex.Item>
+                                                                                </Flex>
+                                                                            </Flex.Item>
+                                                                        ))}
+                                                                        < Flex.Item >
+                                                                            <Text>......</Text>
+                                                                        </Flex.Item>
+                                                                    </>
                                                     }
                                                 </Flex>
                                             </Card.Body>
@@ -124,6 +136,7 @@ const mapStateToProps = (state, props) => {
         orders: getOrders(state),
         byOrders: getByOrders(state),
         byProducts: getByProducts(state),
+        byBoxes: getByBoxes(state),
     };
 };
 

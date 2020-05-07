@@ -4,7 +4,7 @@ import { post, get } from "../../utils/request";
 import url from "../../utils/url";
 import { storeData } from "../../utils/storage";
 import { TOKEN } from "../../utils/common";
-import {requestType} from "../../utils/common";
+import { requestType } from "../../utils/common";
 
 const initialState = {
     selectedSlot: new Array(),
@@ -15,6 +15,7 @@ const initialState = {
 export const types = {
     SELECT_SLOT: "NEWORDER/SELECT_SLOT",
     RESET_SLOT: "NEWORDER/RESET_SLOT",
+    RESET_AFTER_COMPLETE_RESERVATION: "NEWORDER/RESET_AFTER_COMPLETE_RESERVATION",
 };
 
 //action creators
@@ -34,15 +35,16 @@ export const actions = {
             })
         }
     },
-    reserve:(order)=>{
-        return (dispatch)=>{
+    reserve: (order) => {
+        return (dispatch) => {
             dispatch(appActions.startRequest(requestType.updateRequest));
             const params = { ...order };
             return post(url.reserve(), params).then((result) => {
                 dispatch(appActions.finishRequest(requestType.updateRequest));
                 if (!result.error) {
                     console.log("result.data", result.data)
-                    dispatch(customerPickUpSuccess(convertOrderToPlainStructure(result.data)));
+                    dispatch(orderActions.completeReservation(result.data));
+                    dispatch({ type: types.RESET_AFTER_COMPLETE_RESERVATION });
                     return Promise.resolve();
                 } else {
                     dispatch(appActions.setError(result.error));
@@ -57,6 +59,8 @@ export const actions = {
 const reducer = (state = initialState, action) => {
     let selectedSlot;
     switch (action.type) {
+        case types.RESET_AFTER_COMPLETE_RESERVATION:
+            return { ...state, hasSelectSlot: false };
         case types.RESET_SLOT:
             return { ...state, selectedSlot: new Array(), hasSelectSlot: false }
         case types.SELECT_SLOT:

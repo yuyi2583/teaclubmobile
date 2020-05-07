@@ -8,32 +8,26 @@ import { Link } from "react-router-native";
 import { matchUrl } from "../../utils/commonUtils";
 
 class BoxList extends Component {
-    state={
-        isReservation:false,//false=只展示预约列表，true=需要选取包厢时间段预约
+    state = {
+        isReservation: false,//false=只展示预约列表，true=需要选取包厢时间段预约
     }
 
     componentDidMount() {
         console.log("box list url", this.props.match.url);
-        if(this.props.match.url.indexOf("customer")>0){
-            this.setState({isReservation:true});
+        if (this.props.match.url.indexOf("customer") > 0) {
+            this.setState({ isReservation: true });
         }
         const shopId = this.props.shop.uid;
         this.props.fetchBoxes(shopId);
     }
 
     getCurrentReservationStatus = (boxId) => {
-        const { shop, byReservations, byBoxes } = this.props;
+        const { shop, byBoxes } = this.props;
         const { duration, reservations } = byBoxes[boxId];
-        const { startTime, endTime } = shop.todayOpenHour;
+        const { startTime } = shop.todayOpenHour;
         const currentTime = new Date().getTime();
-        const currentReservationTime = startTime + Math.floor((currentTime - startTime) / duration) * duration;
-        let hasReservation = false;
-        reservations.forEach(uid => {
-            if (byReservations[uid].reservationTime == currentReservationTime) {
-                hasReservation = true;
-            }
-        });
-        if (hasReservation) {
+        const currentReservationTime = startTime + Math.floor((currentTime - startTime) / (duration * 1000 * 60)) * (duration * 1000 * 60);
+        if (reservations.indexOf(currentReservationTime) != -1) {
             return "使用中";
         }
         return "空闲";
@@ -49,7 +43,7 @@ class BoxList extends Component {
             )
         }
         const isOpen = shop.todayOpenHour.startTime != undefined;
-        const {isReservation}=this.state;
+        const { isReservation } = this.state;
         return (
             <View style={{ height: "100%" }}>
                 <ScrollView style={{ height: "100%" }}>
@@ -57,8 +51,8 @@ class BoxList extends Component {
                         boxes.map(uid => (
                             <Link
                                 to={{
-                                    pathname: isReservation?`${this.props.match.url}/${uid}`:matchUrl.BOXDETAIL(uid),
-                                    state: { from: this.props.match.url,isReservation }
+                                    pathname: isReservation ? `${this.props.match.url}/${uid}` : matchUrl.BOXDETAIL(uid),
+                                    state: { from: this.props.match.url, isReservation }
                                 }}
                                 component={TouchableOpacity}
                                 key={uid}>

@@ -28,18 +28,18 @@ export default function asyncComponent(importComponent) {
       });
     }
 
-    toast = (type, message) => {
+    toast = (type, message,duration=5) => {
       switch (type) {
         case "success":
-          return Toast.success(message, 5);
+          return Toast.success(message, duration);
         case "fail":
-          return Toast.fail(message, 5);
+          return Toast.fail(message, duration);
         case "info":
-          return Toast.info(message, 5);
+          return Toast.info(message, duration);
         case "loading":
           return Toast.loading(message, 0);
         case "offline":
-          return Toast.offline(message, 5);
+          return Toast.offline(message, duration);
       }
     }
 

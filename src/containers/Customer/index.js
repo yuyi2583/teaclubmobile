@@ -1,15 +1,17 @@
 import React, { Component } from "react";
-import { Text, View, TouchableOpacity } from "react-native";
+import { Text, View, TouchableOpacity, Alert } from "react-native";
 import { Card, WhiteSpace, WingBlank, Flex, Button, ActivityIndicator, Tabs, Icon } from "@ant-design/react-native";
 import { bindActionCreators } from "redux";
 import { connect } from "react-redux";
 import { actions as customerActions, getCustomers, getByCustomers, getByCustomerFaces, getCustomerFaces } from "../../redux/modules/customer";
 import { actions as newOrderActions, getSelectedSlot } from "../../redux/modules/newOrder";
+import { getByBoxes } from "../../redux/modules/box";
 import OrderList from "./components/OrderList";
 import { Link, Switch, Route } from "react-router-native";
 import { matchUrl } from "../../utils/commonUtils";
 import connectRoute from "../../utils/connectRoute";
 import asyncComponent from "../../utils/AsyncComponent";
+import { timeStampConvertToFormatTime } from "../../utils/timeUtils";
 
 
 const AsyncAddOrderEntry = connectRoute(asyncComponent(() => import("./components/AddOrderEntry")));
@@ -62,21 +64,58 @@ class Customer extends Component {
         const { pathname } = this.props.location;
         const pathnameSplit = pathname.split("/")
         const boxId = pathnameSplit[pathnameSplit.length - 1];
-        const { currentCustomer, user, selectedSlot } = this.props;
+        const { currentCustomer, user, selectedSlot, byBoxes } = this.props;
+        const { duration, price } = byBoxes[boxId];
         //TODO 区分是否注册
-        const reservations = selectedSlot.map(reservationTime => ({ reservationTime, boxId }))
+        if (selectedSlot.length == 0) {
+            this.props.toast("info", "您未选择预约时间段");
+            return;
+        }
+        const reservations = selectedSlot.map(reservationTime => ({ reservationTime, boxId }));
+        let ingot = 0;
+        let credit = 0;
+        let confirmationDisplay = "预约以下时间段:\n";
+        reservations.forEach(reservation => {
+            ingot += price.ingot;
+            credit += price.credit;
+            confirmationDisplay += `${timeStampConvertToFormatTime(reservation.reservationTime)}~${timeStampConvertToFormatTime(reservation.reservationTime + duration * 1000 * 60)}\n`;
+        })
+        let amountDisplay = "";
+        if (ingot != 0) {
+            amountDisplay += `${ingot}元宝 `;
+        }
+        if (credit != 0) {
+            amountDisplay += `${credit}积分`;
+        }
+        confirmationDisplay += `总价:${amountDisplay}`;
         const order = {
             customer: { uid: currentCustomer.customerId },
-            clerk: { uid: user.uid },
+            clerk: { uid: user.uid, name: user.name },
             reservations,
+            amount: { ingot, credit }
         }
-        this.props.reserve(order)
-            .then(() => {
+        Alert.alert(
+            "确认预约？",
+            `${confirmationDisplay}`,
+            [
+                {
+                    text: "取消",
+                    style: "cancel"
+                },
+                {
+                    text: "确认", onPress: () => {
+                        this.props.reserve(order)
+                            .then(() => {
 
-            })
-            .catch(err => {
-                this.props.toast("fail", err);
-            })
+                            })
+                            .catch(err => {
+                                this.props.toast("fail", err, 8);
+                            })
+                    }
+                }
+            ],
+            { cancelable: false }
+        );
     }
 
     render() {
@@ -160,6 +199,7 @@ const mapStateToProps = (state, props) => {
         customerFaces: getCustomerFaces(state),
         byCustomerFaces: getByCustomerFaces(state),
         selectedSlot: getSelectedSlot(state),
+        byBoxes: getByBoxes(state),
     };
 };
 
