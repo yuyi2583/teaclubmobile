@@ -1,10 +1,11 @@
 import React, { Component } from "react";
 import { View, Text, Image } from "react-native";
-import { Tabs, Button } from "@ant-design/react-native";
-import {ws} from "../../utils/url";
+import { Tabs, Button, InputItem } from "@ant-design/react-native";
+import { ws } from "../../utils/url";
 import { bindActionCreators } from "redux";
 import { connect } from "react-redux";
-import {actions as newOrderActions} from "../../redux/modules/newOrder";
+import { actions as newOrderActions } from "../../redux/modules/newOrder";
+import {matchUrl} from "../../utils/commonUtils";
 
 const tabs = [
     { title: '微信支付' },
@@ -20,12 +21,16 @@ const style = {
 
 class Pay extends Component {
 
-    componentDidMount(){
+    state = {
+        value: 50,
+    }
+
+    componentDidMount() {
         this.WebSocketPayConnect()
     }
 
     WebSocketPayConnect = () => {
-        const {customerId}=this.props.match.params;
+        const { customerId } = this.props.match.params;
         var wspay = new WebSocket(ws.pay(customerId));
         wspay.onopen = () => {
             // connection opened
@@ -34,11 +39,12 @@ class Pay extends Component {
 
         wspay.onmessage = (e) => {
             // a message was received
-            const result=JSON.parse(e.data)
+            const result = JSON.parse(e.data)
             console.log("wspay receive message", result);
-            if(result.code==200){
-                this.props.toast("success",result.data);
+            if (result.code == 200) {
+                this.props.toast("success", result.data);
                 //TODO充值成功后跳转到订单页
+                this.props.history.replace(matchUrl.CUSTOMER(this.props.currentCustomer.uid))
             }
         };
 
@@ -53,12 +59,14 @@ class Pay extends Component {
         };
     }
 
-    pay=()=>{
-        const {customerId}=this.props.match.params;
-        this.props.pay(customerId);
+    pay = () => {
+        const { customerId } = this.props.match.params;
+        const { value } = this.state;
+        this.props.pay(customerId, value);
     }
 
     render() {
+        const { value } = this.state;
         return (
             <View style={{ width: "100%", height: "100%" }}>
                 <Tabs tabs={tabs}>
@@ -69,7 +77,19 @@ class Pay extends Component {
                         <Image source={require('../../assets/pay_ali.jpg')} style={{ width: 300, height: 300 }} />
                     </View>
                 </Tabs>
-                <Button type="primary" onPress={this.pay}>模拟支付完成</Button>
+                <InputItem
+                    clear
+                    type="number"
+                    value={this.state.value}
+                    onChange={value => {
+                        this.setState({
+                            value,
+                        });
+                    }}
+                    placeholder="充值金额"
+                    extra="元"
+                />
+                <Button type="primary" onPress={this.pay}>模拟支付</Button>
             </View>
         )
     }

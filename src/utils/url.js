@@ -10,7 +10,7 @@ export default {
    fetchBoxes:(shopId)=>`${HOST}/boxes/${shopId}`,
    fetchReservations:(boxId,startTime,endTime)=>`${HOST}/reservations/${boxId}/${startTime}/${endTime}`,
    reserve:()=>`${HOST}/reserve`,
-   pay:(customerId)=>`${HOST}/simulatePay/${customerId}`,
+   pay:(customerId,value)=>`${HOST}/simulatePay/${customerId}/${value}`,
 }
 
 export const ws={

@@ -59,10 +59,10 @@ export const actions = {
             dispatch({ type: types.RESET_AFTER_COMPLETE_RESERVATION });
         })
     },
-    pay:(customerId)=>{
+    pay:(customerId,value)=>{
         return(dispatch)=>{
             dispatch(appActions.startRequest());
-            return get(url.pay(customerId)).then((result) => {
+            return get(url.pay(customerId,value)).then((result) => {
                 dispatch(appActions.finishRequest());
                 if (!result.error) {
                     console.log("result.data", result.data)
