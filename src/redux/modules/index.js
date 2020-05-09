@@ -5,6 +5,7 @@ import customer from "./customer";
 import order from "./order";
 import box from "./box";
 import newOrder from "./newOrder";
+import product from "./product";
 
 
 // 合并所有模块的reducer成一个根reducer
@@ -15,6 +16,7 @@ const rootReducer = combineReducers({
     order,
     box,
     newOrder,
+    product,
 });
 
 export default rootReducer;

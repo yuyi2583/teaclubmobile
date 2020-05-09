@@ -44,8 +44,8 @@ export const actions = {
             });
         }
     },
-    //客户完成包厢预约
-    completeReservation: (data) => {
+    //客户完成订单
+    completeOrder: (data) => {
         return (dispatch) => {
             dispatch({
                 type: types.COMPLETE_RESERVATION,

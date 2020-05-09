@@ -1,27 +1,29 @@
 import React, { Component } from "react";
-import { Text, View, TouchableOpacity, Alert } from "react-native";
-import { Card, WhiteSpace, WingBlank, Flex, Button, ActivityIndicator, Tabs, Icon } from "@ant-design/react-native";
+import { Text, View, TouchableOpacity, Alert, ScrollView } from "react-native";
+import { Card, WhiteSpace, WingBlank, Flex, Button, ActivityIndicator, Tabs, Icon, Badge, Modal, Result, Portal } from "@ant-design/react-native";
 import { bindActionCreators } from "redux";
 import { connect } from "react-redux";
 import { actions as customerActions, getCustomers, getByCustomers, getByCustomerFaces, getCustomerFaces } from "../../redux/modules/customer";
-import { actions as newOrderActions, getSelectedSlot } from "../../redux/modules/newOrder";
+import { actions as newOrderActions, getSelectedSlot, getSelectedProduct } from "../../redux/modules/newOrder";
 import { getByBoxes } from "../../redux/modules/box";
+import { getByProducts, getByPhotos } from "../../redux/modules/product";
 import OrderList from "./components/OrderList";
 import { Link, Switch, Route, Redirect } from "react-router-native";
 import { matchUrl } from "../../utils/commonUtils";
 import connectRoute from "../../utils/connectRoute";
 import asyncComponent from "../../utils/AsyncComponent";
 import { timeStampConvertToFormatTime } from "../../utils/timeUtils";
+import Stepper from "../../components/Stepper";
 
 
 const AsyncAddOrderEntry = connectRoute(asyncComponent(() => import("./components/AddOrderEntry")));
 const AsyncBoxList = connectRoute(asyncComponent(() => import("../BoxList")));
 const AsyncBoxDetail = connectRoute(asyncComponent(() => import("../BoxDetail")));
-
+const AsyncProductList = connectRoute(asyncComponent(() => import("../ProductList")));
 
 const tabs = [
-    { title: '订单' },
     { title: '新增' },
+    { title: '订单' },
 ];
 
 const style = {
@@ -35,6 +37,7 @@ class Customer extends Component {
     state = {
         hasRegister: true,
         redirectTo: null,
+        visible: false
     }
 
     componentDidMount() {
@@ -52,9 +55,23 @@ class Customer extends Component {
     getButtonDispaly = () => {
         const { pathname } = this.props.location;
         var reservationRegex = /\/mobile\/customer\/\d+\/box\/\d+/;
+        var productRegex = /\/mobile\/customer\/\d+\/product\/\d+/;
         let display = null;
         if (reservationRegex.test(pathname)) {
             display = <Button type="primary" size="lg" style={{ width: 100, height: 30 }} onPress={this.reservation}>确认预约</Button>;
+        } else if (productRegex.test(pathname)) {
+            const { selectedProduct } = this.props;
+            let count = 0;
+            for (var i in selectedProduct) {
+                count += selectedProduct[i];
+            }
+            display = (
+                <TouchableOpacity onPress={() => this.setState({ visible: true })}>
+                    <Badge text={count}>
+                        <Icon name="shopping-cart" size="lg" color="#108EE9" />
+                    </Badge>
+                </TouchableOpacity>
+            )
         }
         return display;
 
@@ -105,10 +122,11 @@ class Customer extends Component {
                     text: "确认", onPress: () => {
                         this.props.reserve(order)
                             .then(() => {
-
+                                this.props.toast("success", "预约成功");
+                                this.props.history.push(matchUrl.CUSTOMER(this.props.currentCustomer.uid))
                             })
                             .catch(err => {
-                                console.log("err",err);
+                                console.log("err", err);
                                 if (err.code == 500700) {//余额不足，跳转付费二维码
                                     Alert.alert(
                                         "余额不足",
@@ -138,6 +156,66 @@ class Customer extends Component {
         );
     }
 
+    onProductModalClose = () => {
+        this.setState({ visible: false })
+    }
+
+    getProductModalDisplay = () => {
+        const { selectedProduct, byProducts, byPhotos } = this.props;
+        let display = new Array();
+        for (var i in selectedProduct) {
+            if (selectedProduct[i] > 0) {
+                display.push(
+                    <WingBlank size="lg" key={i}>
+                        <Card style={{ marginTop: 10 }}>
+                            <Card.Header
+                                title={byProducts[i].name}
+                                thumbStyle={{ width: 80, height: 80 }}
+                                thumb={byProducts[i].photos.length == 0 ? null : byPhotos[byProducts[i].photos[0]].photo}
+                                extra={
+                                    <Stepper
+                                        max={byProducts[i].storage}
+                                        min={0}
+                                        value={selectedProduct[i]}
+                                        onChange={(value) => this.props.selectProduct(i, value)}
+                                    />
+                                }
+                            />
+                        </Card>
+                    </WingBlank>
+                )
+            }
+        }
+        if (display.length == 0) {
+            display.push(<Result key={0} title="空空如也..." message="您没有选择商品" />)
+        }
+        return display;
+    }
+
+    placeOrder = () => {
+        const { currentCustomer, selectedProduct, user } = this.props;
+        const customerId = currentCustomer.customerId;
+        const key = this.props.toast("loading", 'Loading....', 0);
+        let products = new Array();
+        for (var i in selectedProduct) {
+            products.push({ product: { uid: i }, number: selectedProduct[i] });
+        }
+        const order = {
+            customer: { uid: customerId },
+            clerk: { uid: user.uid, name: user.name },
+            products
+        }
+        this.props.placeOrder(order)
+            .then(() => {
+                Portal.remove(key);
+                this.props.toast("success", "下单成功");
+            })
+            .catch(err => {
+                this.props.toast("fail", err.error, 8);
+            })
+
+    }
+
     render() {
         const { byCustomerFaces, byCustomers } = this.props;
         const { faceId } = this.props.match.params;
@@ -163,6 +241,7 @@ class Customer extends Component {
             )
         }
         const displayButton = this.getButtonDispaly();
+        const productModalDisplay = this.getProductModalDisplay();
         return (
             <Flex direction="column" style={{ width: "100%", height: "100%" }}>
                 <Flex.Item style={{ flex: 1, width: "100%" }}>
@@ -186,37 +265,84 @@ class Customer extends Component {
                     </Card>
                 </Flex.Item>
                 <Flex.Item style={{ flex: 5, width: "100%" }}>
-                    <Tabs tabs={tabs}>
-                        <View style={{ padding: 10 }}>
-                            <Switch>
-                                <Route
-                                    path={this.props.match.url}
-                                    exact
-                                    render={props =>
+                    <Switch>
+                        <Route
+                            path={this.props.match.url}
+                            exact
+                            render={props =>
+                                <Tabs tabs={tabs}>
+                                    <View style={{ padding: 10 }}>
                                         <AsyncAddOrderEntry {...props} {...this.props} />
-                                    }
-                                />
-                                <Route
-                                    path={`${this.props.match.url}/box`}
-                                    exact
-                                    render={props =>
-                                        <AsyncBoxList {...props} customerId={customerId} />
-                                    }
-                                />
-                                <Route
-                                    path={`${this.props.match.url}/box/:boxId`}
-                                    render={props =>
-                                        <AsyncBoxDetail {...props} />
-                                    }
-                                />
-                            </Switch>
-
-                        </View>
-                        <View>
-                            <OrderList {...this.props} />
-                        </View>
-                    </Tabs>
+                                    </View>
+                                    <View>
+                                        <OrderList {...this.props} />
+                                    </View>
+                                </Tabs>
+                            }
+                        />
+                        <Route
+                            path={`${this.props.match.url}/box`}
+                            exact
+                            render={props =>
+                                <AsyncBoxList {...props} customerId={customerId} />
+                            }
+                        />
+                        <Route
+                            path={`${this.props.match.url}/box/:boxId`}
+                            render={props =>
+                                <AsyncBoxDetail {...props} />
+                            }
+                        />
+                        <Route
+                            path={`${this.props.match.url}/product/:shopId`}
+                            exact
+                            render={props =>
+                                <AsyncProductList {...props} customerId={customerId} />
+                            }
+                        />
+                    </Switch>
                 </Flex.Item>
+                <Modal
+                    transparent={false}
+                    visible={this.state.visible}
+                    animationType="slide-up"
+                    onClose={this.onProductModalClose}
+                >
+                    <Flex style={{ height: "100%", width: "100%" }} direction="column">
+                        <Flex.Item style={{ width: "100%" }}>
+                            <Flex>
+                                <Flex.Item style={{ padding: 10 }}>
+                                    <TouchableOpacity onPress={() => this.setState({ visible: false })}>
+                                        <Icon name="close" size="md" />
+                                    </TouchableOpacity>
+                                </Flex.Item>
+                                <Flex.Item style={{ padding: 10 }}>
+                                    <TouchableOpacity onPress={() => this.props.resetSelectedProduct()}>
+                                        <Text style={{ textAlign: "right" }}>
+                                            <Icon name="delete" size="md" />
+                                        </Text>
+                                    </TouchableOpacity>
+                                </Flex.Item>
+                            </Flex>
+                        </Flex.Item>
+                        <Flex.Item style={{ flex: 10, width: "100%" }}>
+                            <ScrollView style={{ height: "100%" }}>
+                                {productModalDisplay}
+                            </ScrollView>
+                        </Flex.Item>
+                        {/* TODO 根据优惠规则计算总价 */}
+                        <Flex.Item style={{ width: "100%" }}>
+                            <Flex>
+                                <Flex.Item>
+                                    <Button type="primary" onPress={this.onProductModalClose}>继续选择</Button>
+                                </Flex.Item>
+                                <Flex.Item>
+                                    <Button type="warning" onPress={this.placeOrder}>下单</Button>
+                                </Flex.Item>
+                            </Flex>
+                        </Flex.Item>
+                    </Flex>
+                </Modal>
             </Flex>
         )
     }
@@ -230,6 +356,9 @@ const mapStateToProps = (state, props) => {
         byCustomerFaces: getByCustomerFaces(state),
         selectedSlot: getSelectedSlot(state),
         byBoxes: getByBoxes(state),
+        selectedProduct: getSelectedProduct(state),
+        byProducts: getByProducts(state),
+        byPhotos: getByPhotos(state),
     };
 };
 

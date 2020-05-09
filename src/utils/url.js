@@ -11,6 +11,7 @@ export default {
    fetchReservations:(boxId,startTime,endTime)=>`${HOST}/reservations/${boxId}/${startTime}/${endTime}`,
    reserve:()=>`${HOST}/reserve`,
    pay:(customerId,value)=>`${HOST}/simulatePay/${customerId}/${value}`,
+   fetchProducts:(shopId)=>`${HOST}/products/${shopId}`,
 }
 
 export const ws={

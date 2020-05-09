@@ -43,7 +43,6 @@ class Pay extends Component {
             console.log("wspay receive message", result);
             if (result.code == 200) {
                 this.props.toast("success", result.data);
-                //TODO充值成功后跳转到订单页
                 this.props.history.replace(matchUrl.CUSTOMER(this.props.currentCustomer.uid))
             }
         };

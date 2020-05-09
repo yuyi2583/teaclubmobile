@@ -25,7 +25,7 @@ function AddOrderEntry(props) {
             <WingBlank size="lg">
                 <Link
                     to={{
-                        pathname: matchUrl.BOXLIST(),
+                        pathname: `${props.match.url}/product/${props.shop.uid}`,
                         state: { from: props.match.url }
                     }}
                     onClick={() => console.log("press link")}
