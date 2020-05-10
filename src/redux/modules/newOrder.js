@@ -101,8 +101,6 @@ export const actions = {
             return post(url.placeOrder(), params).then((result) => {
                 dispatch(appActions.finishRequest(requestType.updateRequest));
                 if (!result.error) {
-                    console.log("result.data", result.data)
-                    dispatch(orderActions.completeOrder(result.data));
                     dispatch({ type: types.RESET_PRODUCT });
                     return Promise.resolve();
                 } else {

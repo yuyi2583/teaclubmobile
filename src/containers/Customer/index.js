@@ -1,6 +1,6 @@
 import React, { Component } from "react";
 import { Text, View, TouchableOpacity, Alert, ScrollView } from "react-native";
-import { Card, WhiteSpace, WingBlank, Flex, Button, ActivityIndicator, Tabs, Icon, Badge, Modal, Result, Portal } from "@ant-design/react-native";
+import { Card, WhiteSpace, WingBlank, Flex, Button, ActivityIndicator, Tabs, Icon, Badge, Modal, InputItem, Result, Portal } from "@ant-design/react-native";
 import { bindActionCreators } from "redux";
 import { connect } from "react-redux";
 import { actions as customerActions, getCustomers, getByCustomers, getByCustomerFaces, getCustomerFaces } from "../../redux/modules/customer";
@@ -37,7 +37,9 @@ class Customer extends Component {
     state = {
         hasRegister: true,
         redirectTo: null,
-        visible: false
+        visible: false,
+        clerkDiscountModalVisible: false,
+        clerkDiscount: 100,
     }
 
     componentDidMount() {
@@ -52,6 +54,7 @@ class Customer extends Component {
             })
     }
 
+    //TODO customer有时会变成undefined
     getButtonDispaly = () => {
         const { pathname } = this.props.location;
         var reservationRegex = /\/mobile\/customer\/\d+\/box\/\d+/;
@@ -78,7 +81,9 @@ class Customer extends Component {
     }
 
     getAmountDisplay = () => {
+        //TODO 店员折扣
         const { selectedProduct, byActivityRules, byProducts } = this.props;
+        const {clerkDiscount}=this.state;
         let activityBitmap = new Object();//用于记录已参与的活动
         let ingot = 0;
         let credit = 0;
@@ -86,10 +91,11 @@ class Customer extends Component {
         for (var key in selectedProduct) {
             //遍历该产品所参与的活动，产品所参与的活动已按照优先级降序排序
             //即产品优先参与优先级高的活动，每个产品一次只能参与一个活动
+            //积分不参与折扣
             const rule = byProducts[key].activityRules;
-            if(rule.length==0){//产品不参与活动
-                ingot+=byProducts[key].price.ingot*selectedProduct[key];
-                credit+=byProducts[key].price.credit*selectedProduct[key];
+            if (rule.length == 0) {//产品不参与活动
+                ingot += byProducts[key].price.ingot * selectedProduct[key];
+                credit += byProducts[key].price.credit * selectedProduct[key];
             }
             console.log("key", key);
             for (var i = 0; i < rule.length; i++) {
@@ -131,16 +137,16 @@ class Customer extends Component {
                 if (activityRule2 == null) {
                     //折扣
                     ingot += ruleIngot * (100 - activityRule1) / 100;
-                    credit += ruleCredit * (100 - activityRule1) / 100;
+                    credit += ruleCredit ;
                 } else {
                     //购物满xx赠/减xx积分/元宝
                     if (ruleIngot > activityRule1) {//满足条件
-                        if (activityRule2.operation == "minus") {//满减,满赠在后台处理
-                            if (activityRule2.currency == "ingot") {
+                        if (activityRule2.operation == "minus") {//满减元宝,满赠在后台处理
+                            // if (activityRule2.currency == "ingot") {
                                 ruleIngot -= activityRule2.number;
-                            } else {
-                                ruleCredit -= activityRule2.number;
-                            }
+                            // } else {
+                            //     ruleCredit -= activityRule2.number;
+                            // }
                         }
                     }
                     ingot += ruleIngot;
@@ -148,6 +154,7 @@ class Customer extends Component {
                 }
             }
         }
+        ingot*=clerkDiscount/100;
         console.log("ingot", ingot, "credit", credit);
         return {
             ingot,
@@ -282,47 +289,76 @@ class Customer extends Component {
     }
 
     placeOrder = (activityBitmap) => {
-        const { currentCustomer, selectedProduct, user, byProducts, byActivityRules } = this.props;
-        const customerId = currentCustomer.customerId;
-        let products = new Array();
-        for (var i in selectedProduct) {
-            let activityRuleId = null;
-            byProducts[i].activityRules.forEach(ruleId => {
-                const activityId = byActivityRules[ruleId].activity.uid;
-                if (activityBitmap[activityId][ruleId].indexOf(i) != -1) {
-                    activityRuleId = ruleId;
-                }
-            })
-            let orderProduct = { product: { uid: i }, number: selectedProduct[i] };
-            if (activityRuleId != null) {
-                orderProduct = { ...orderProduct, activityRule: { uid: activityRuleId } };
-            }
-            products.push(orderProduct);
-        }
-        if (products.length == 0) {
-            this.props.toast("fail", "您没有选择商品...", 8);
-            return;
-        }
-        const order = {
-            customer: { uid: customerId },
-            clerk: { uid: user.uid },
-            products
-        }
-        const key = this.props.toast("loading", 'Loading....', 0);
-        this.props.placeOrder(order)
-            .then(() => {
-                Portal.remove(key);
-                this.props.toast("success", "下单成功");
-            })
-            .catch(err => {
-                Portal.remove(key);
-                this.props.toast("fail", err.error, 8);
-            })
+        Alert.alert(
+            "确认？",
+            `确认订单信息无误？`,
+            [
+                {
+                    text: "取消",
+                    style: "cancel"
+                },
+                {
+                    text: "确认", onPress: () => {
+                        const { currentCustomer, selectedProduct, user, byProducts, byActivityRules } = this.props;
+                        const customerId = currentCustomer.customerId;
+                        const {clerkDiscount}=this.state;
+                        let products = new Array();
+                        for (var i in selectedProduct) {
+                            let activityRuleId = null;
+                            byProducts[i].activityRules.forEach(ruleId => {
+                                const activityId = byActivityRules[ruleId].activity.uid;
+                                if (activityBitmap[activityId][ruleId].indexOf(i) != -1) {
+                                    activityRuleId = ruleId;
+                                }
+                            })
+                            let orderProduct = { product: { uid: i }, number: selectedProduct[i] };
+                            if (activityRuleId != null) {
+                                orderProduct = { ...orderProduct, activityRule: { uid: activityRuleId } };
+                            }
+                            products.push(orderProduct);
+                        }
+                        if (products.length == 0) {
+                            this.props.toast("fail", "您没有选择商品...", 8);
+                            return;
+                        }
+                        const order = {
+                            customer: { uid: customerId },
+                            clerk: { uid: user.uid },
+                            products,
+                            clerkDiscount
+                        }
+                        const key = this.props.toast("loading", 'Loading....', 0);
+                        this.props.placeOrder(order)
+                            .then(() => {
+                                Portal.remove(key);
+                                this.setState({ visible: false,clerkDiscount:100 });
+                                this.props.toast("success", "下单成功", 8);
+                                this.props.history.replace(`${matchUrl.CUSTOMER(currentCustomer.uid)}`);
+                                this.props.fetchCustomer(currentCustomer.uid)
+                                    .then(() => {
 
+                                    })
+                                    .catch(err => {
+                                        //TODO 网络问题的展示
+                                    })
+                            })
+                            .catch(err => {
+                                Portal.remove(key);
+                                this.props.toast("fail", err.error, 8);
+                            })
+                    }
+                }
+            ],
+            { cancelable: false }
+        );
+    }
+
+    setClerkDiscount = () => {
+        this.setState({ clerkDiscountModalVisible: true })
     }
 
     render() {
-        const { byCustomerFaces, byCustomers } = this.props;
+        const { byCustomerFaces, byCustomers, user } = this.props;
         const { faceId } = this.props.match.params;
         const customerId = byCustomerFaces[faceId].customerId;
         const hasRegister = customerId != undefined;
@@ -442,11 +478,49 @@ class Customer extends Component {
                                     <Button type="primary" onPress={this.onProductModalClose}>继续选择</Button>
                                 </Flex.Item>
                                 <Flex.Item>
+                                    <Button type="ghost" onPress={() => this.setState({ clerkDiscountModalVisible: true })}>店员优惠</Button>
+                                </Flex.Item>
+                                <Flex.Item style={{ flex: 2 }}>
                                     <Button type="warning" onPress={() => this.placeOrder(activityBitmap)}>总价:{`${ingot}元宝 ${credit}积分`}  下单</Button>
                                 </Flex.Item>
                             </Flex>
                         </Flex.Item>
                     </Flex>
+                </Modal>
+                <Modal
+                    title="店员折扣"
+                    transparent
+                    onClose={() => this.setState({ clerkDiscountModalVisible: false })}
+                    maskClosable
+                    visible={this.state.clerkDiscountModalVisible}
+                    closable
+                    footer={[
+                        { text: '取消', onPress: () => this.setState({ clerkDiscountModalVisible: false }) },
+                        { text: '确认', onPress: () => this.setState({ clerkDiscountModalVisible: false })},
+                    ]}
+                >
+                    <View style={{ paddingVertical: 20 }}>
+                        <Text style={{ textAlign: 'center' }}>您最多可以提供{user.leastDiscount}%折扣</Text>
+                    </View>
+                    <InputItem
+                        clear
+                        type="number"
+                        value={this.state.clerkDiscount}
+                        onChange={value => {
+                            if(value<0){
+                                this.props.toast("fail",`优惠折扣不能小于0`,6);
+                                return;
+                            }
+                            if(value<user.leastDiscount){
+                                this.props.toast("fail",`您不能提供低于${user.leastDiscount}%的折扣`,6);
+                                return;
+                            }
+                            this.setState({
+                                clerkDiscount: value,
+                            });
+                        }}
+                        extra="%"
+                        placeholder="折扣数值（1~100）"/>
                 </Modal>
             </Flex>
         )
