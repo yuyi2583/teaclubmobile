@@ -12,6 +12,7 @@ export default {
    reserve:()=>`${HOST}/reserve`,
    pay:(customerId,value)=>`${HOST}/simulatePay/${customerId}/${value}`,
    fetchProducts:(shopId)=>`${HOST}/products/${shopId}`,
+   placeOrder:()=>`${HOST}/order`,
 }
 
 export const ws={

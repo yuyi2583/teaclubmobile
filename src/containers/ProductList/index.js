@@ -2,7 +2,7 @@ import React, { Component } from "react";
 import { View, Text, TouchableOpacity, ScrollView } from "react-native";
 import { bindActionCreators } from "redux";
 import { connect } from "react-redux";
-import { Tabs, Card, WingBlank, ActivityIndicator } from "@ant-design/react-native";
+import { Tabs, Card, WingBlank, ActivityIndicator,Flex } from "@ant-design/react-native";
 import {
     actions as productActions,
     getByActivityRules, getByPhotos, getByProducts, getProducts, getByProductTypes, getProductTypes
@@ -119,12 +119,17 @@ class ProductList extends Component {
                                                         thumbStyle={{ width: 80, height: 80 }}
                                                         thumb={byProducts[pId].photos.length == 0 ? null : byPhotos[byProducts[pId].photos[0]].photo}
                                                         extra={
-                                                            <Stepper
-                                                                max={byProducts[pId].storage}
-                                                                min={0}
-                                                                value={selectedProduct[pId]?selectedProduct[pId]:0}
-                                                                onChange={(value) => this.onProductChange(pId, value)}
-                                                            />
+                                                            <Flex>
+                                                                <Flex.Item><Text style={{fontSize:12}}>单价:{`${byProducts[pId].price.ingot}元宝 ${byProducts[pId].price.credit}积分`}</Text></Flex.Item>
+                                                                <Flex.Item>
+                                                                    <Stepper
+                                                                        max={byProducts[pId].storage}
+                                                                        min={0}
+                                                                        value={selectedProduct[pId] ? selectedProduct[pId] : 0}
+                                                                        onChange={(value) => this.onProductChange(pId, value)}
+                                                                    />
+                                                                </Flex.Item>
+                                                            </Flex>
                                                         }
                                                     />
                                                 </Card>

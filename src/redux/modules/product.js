@@ -64,6 +64,9 @@ const convertProductsToPlainStructure = (data) => {
                 byActivityRules[item.uid] = item;
             }
         })
+        activityRules.sort((a,b)=>{
+            return byActivityRules[a].activity.priority-byActivityRules[b].activity.priority;
+        })
         if (productTypes.indexOf(product.type.uid) == -1) {
             productTypes.push(product.type.uid);
             byProductTypes[product.type.uid]=new Object();
