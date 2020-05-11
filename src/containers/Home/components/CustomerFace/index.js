@@ -16,7 +16,7 @@ class CustomerFace extends Component {
                             thumb={content.image}
                             extra={
                                 <Flex direction="column">
-                                    <Flex.Item><Text>{content.name}</Text></Flex.Item>
+                                    <Flex.Item><Text>{content.name?content.name:"未注册客户"}</Text></Flex.Item>
                                 </Flex>
                             }
                         />

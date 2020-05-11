@@ -1,14 +1,14 @@
 import React from "react";
 import { View, Text, Image, ScrollView, TouchableOpacity } from "react-native";
-import { Flex, Tabs, Card, WhiteSpace, WingBlank } from "@ant-design/react-native";
+import { Flex, Tabs, Card, WhiteSpace, WingBlank, InputItem, Icon } from "@ant-design/react-native";
 import { bindActionCreators } from "redux";
 import { connect } from "react-redux";
-import { actions as customersActions, getByCustomers, getCustomers, getByCustomerFaces, getCustomerFaces } from "../../redux/modules/customer";
+import { actions as customersActions, getByCustomers, getCustomers, getByCustomerFaces, getCustomerFaces, getSearchCustomers, getBySearchCustomers } from "../../redux/modules/customer";
 import CustomerFace from "./components/CustomerFace";
 import { Switch, Route, Link, BackButton } from "react-router-native";
 import connectRoute from "../../utils/connectRoute";
 import asyncComponent from "../../utils/AsyncComponent";
-import {ws} from "../../utils/url";
+import { ws } from "../../utils/url";
 
 
 const AsyncCustomer = connectRoute(asyncComponent(() => import("../Customer")));
@@ -19,7 +19,7 @@ const AsyncPay = connectRoute(asyncComponent(() => import("../Pay")));
 
 const tabs = [
     { title: '当前店内顾客' },
-    { title: '订单' },
+    { title: '搜索客户' },
 ];
 const style = {
     alignItems: 'center',
@@ -30,7 +30,7 @@ const style = {
 
 class Home extends React.Component {
     state = {
-        ws: null,
+        searchText: "",
     }
 
     componentDidMount() {
@@ -86,8 +86,20 @@ class Home extends React.Component {
         };
     }
 
+    searchCustomer = () => {
+        const { searchText } = this.state;
+        console.log("searchText");
+        this.props.searchCustomer(searchText)
+            .then(() => {
+
+            })
+            .catch(err => {
+                this.props.toast("fail", err, 6);
+            })
+    }
+
     render() {
-        const { customers, byCustomers, user, customerFaces, byCustomerFaces, match } = this.props;
+        const { customers, byCustomers, user, customerFaces, byCustomerFaces, match, searchCustomers, bySearchCustomers } = this.props;
         return (
             <Flex style={{ width: "100%", height: "100%" }}>
                 <Flex.Item style={{ flex: 2, height: "100%" }}>
@@ -101,7 +113,7 @@ class Home extends React.Component {
                                 }
                             />
                             <Route
-                                path={`${match.url}/customer/:faceId`}
+                                path={`${match.url}/customer/:type/:uid`}
                                 render={props =>
                                     <AsyncCustomer {...props} />
                                 }
@@ -138,8 +150,11 @@ class Home extends React.Component {
                                                 <Link
                                                     key={uid}
                                                     component={TouchableOpacity}
-                                                    onPress={()=>this.props.setCurrentCustomer(uid)}
-                                                    to={`${match.url}/customer/${uid}`} >
+                                                    onPress={() => {
+                                                        this.props.setCurrentCustomer(uid,"face");
+                                                        this.props.fetchCustomer(uid,"face");
+                                                    }}
+                                                    to={`${match.url}/customer/face/${uid}`} >
                                                     <CustomerFace content={byCustomerFaces[uid]} />
                                                 </Link>
                                             ))
@@ -147,7 +162,45 @@ class Home extends React.Component {
                                     </ScrollView>
                                 </View>
                                 <View style={style}>
-                                    <Text>订单</Text>
+                                    <Flex direction="column" style={{ width: "100%", height: "100%" }}>
+                                        <Flex.Item style={{ width: "100%" }}>
+                                            <InputItem
+                                                clear
+                                                value={this.state.searchText}
+                                                onChange={value => {
+                                                    this.setState({
+                                                        searchText: value,
+                                                    });
+                                                }}
+                                                extra={
+                                                    <TouchableOpacity onPress={this.searchCustomer}>
+                                                        <Icon name="search" />
+                                                    </TouchableOpacity>
+                                                }
+                                                placeholder="客户信息"
+                                            />
+                                        </Flex.Item>
+                                        <Flex.Item style={{ flex: 11, width: "100%" }}>
+                                            <ScrollView style={{ height: "100%" }}>
+                                                {
+                                                    searchCustomers.map(uid => (
+                                                        <Link
+                                                            key={uid}
+                                                            component={TouchableOpacity}
+                                                            onPress={() => {
+                                                                this.props.setCurrentCustomer(uid,"search");
+                                                                this.props.fetchCustomer(uid,"search");
+                                                            }}
+                                                            to={`${match.url}/customer/search/${uid}`} >
+                                                            <CustomerFace content={bySearchCustomers[uid]} />
+                                                        </Link>
+                                                    ))
+                                                }
+                                            </ScrollView>
+                                        </Flex.Item>
+                                    </Flex>
+
+
                                 </View>
                             </Tabs>
                         </View>
@@ -164,6 +217,8 @@ const mapStateToProps = (state, props) => {
         byCustomers: getByCustomers(state),
         customerFaces: getCustomerFaces(state),
         byCustomerFaces: getByCustomerFaces(state),
+        searchCustomers: getSearchCustomers(state),
+        bySearchCustomers: getBySearchCustomers(state),
     };
 };
 

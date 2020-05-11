@@ -5,8 +5,10 @@ import BackArrow from "../../components/BackArrow";
 import { bindActionCreators } from "redux";
 import { connect } from "react-redux";
 import { actions as orderActions, getByOrders, getOrders, getByProducts } from "../../redux/modules/order";
+import { getByBoxes } from "../../redux/modules/box";
 import { deliverMode, orderStatus } from "../../utils/common";
 import { timeStampConvertToFormatTime } from "../../utils/timeUtils";
+import { Link } from "react-router-native";
 
 class OrderDetail extends Component {
 
@@ -78,8 +80,10 @@ class OrderDetail extends Component {
 
     render() {
         const { orderId } = this.props.match.params;
-        const { orders, byOrders, byProducts } = this.props;
+        const { orders, byOrders, byProducts, byBoxes } = this.props;
         const amountDisplay = this.getAmountDisplay();
+        const isReservation = byOrders[orderId].reservations.length > 0;
+        const customerId = byOrders[orderId].customer.uid;
         console.log("order id", orderId);
         return (
             <Flex direction="column" style={{ width: "100%", height: "100%", justifyContent: "flex-start" }}>
@@ -102,8 +106,14 @@ class OrderDetail extends Component {
                                             <Flex.Item>
                                                 <Text>订单状态</Text>
                                             </Flex.Item>
-                                            <Flex.Item style={{ flex:  byOrders[orderId].deliverMode == "selfPickUp" && byOrders[orderId].status.status == "payed" ?2:3 }}>
-                                                <Text>{orderStatus[byOrders[orderId].status.status]}(处理人:{byOrders[orderId].status.processer.name})</Text>
+                                            <Flex.Item style={{ flex: byOrders[orderId].deliverMode == "selfPickUp" && byOrders[orderId].status.status == "payed" ? 2 : 3 }}>
+                                                <Flex>
+                                                    <Text>{orderStatus[byOrders[orderId].status.status]}(处理人:{byOrders[orderId].status.processer.name})</Text>
+                                                    {byOrders[orderId].status.status=="unpay"?
+                                                    <TouchableOpacity onPress={() => this.props.history.push(`/mobile/pay/${customerId}`)}>
+                                                        <Text style={{ marginLeft: 15, textDecorationLine: "underline", textDecorationColor: "#108EE9", color: "#108EE9" }}>付款</Text>
+                                                    </TouchableOpacity>:null}
+                                                </Flex>
                                             </Flex.Item>
                                             {
                                                 byOrders[orderId].deliverMode == "selfPickUp" && byOrders[orderId].status.status == "payed" ?
@@ -120,6 +130,26 @@ class OrderDetail extends Component {
                                             </Flex.Item>
                                             <Flex.Item style={{ flex: 3 }}>
                                                 <Text>{timeStampConvertToFormatTime(byOrders[orderId].orderTime)}</Text>
+                                            </Flex.Item>
+                                        </Flex>
+                                    </List.Item>
+                                    <List.Item>
+                                        <Flex>
+                                            <Flex.Item>
+                                                <Text>订单类型</Text>
+                                            </Flex.Item>
+                                            <Flex.Item style={{ flex: 3 }}>
+                                                <Text>{isReservation ? "包厢预约" : "产品购买"}</Text>
+                                            </Flex.Item>
+                                        </Flex>
+                                    </List.Item>
+                                    <List.Item>
+                                        <Flex>
+                                            <Flex.Item>
+                                                <Text>下单地点</Text>
+                                            </Flex.Item>
+                                            <Flex.Item style={{ flex: 3 }}>
+                                                <Text>{byOrders[orderId].placeOrderWay == null ? "线上" : `门店${byOrders[orderId].placeOrderWay.name}`}</Text>
                                             </Flex.Item>
                                         </Flex>
                                     </List.Item>
@@ -273,21 +303,36 @@ class OrderDetail extends Component {
                                 </Flex>
                             }>
                                 <List>
-                                    {byOrders[orderId].products.length == 0 ?
+                                    {isReservation ?
                                         <List.Item>
-                                            <Text>此订单无产品信息</Text>
+                                            <Flex>
+                                                <Flex.Item>
+                                                    <Text>包厢：{byBoxes[byOrders[orderId].reservations[0].boxId].name}</Text>
+                                                </Flex.Item>
+                                                <Flex.Item style={{ flex: 2 }} >
+                                                    {
+                                                        byOrders[orderId].reservations.map((reservation, index) => (
+                                                            <Text key={index}>{timeStampConvertToFormatTime(reservation.reservationTime)}~{timeStampConvertToFormatTime(reservation.reservationTime + byBoxes[byOrders[orderId].reservations[0].boxId].duration * 1000 * 60)}</Text>
+                                                        ))
+                                                    }
+                                                </Flex.Item>
+                                            </Flex>
                                         </List.Item>
-                                        : byOrders[orderId].products.map(uid => (
-                                            <List.Item key={uid}>
-                                                <Flex>
-                                                    <Flex.Item style={{ flex: 2 }}>
-                                                        <Text>{byProducts[uid].product.name}</Text>
-                                                    </Flex.Item>
-                                                    <Flex.Item >
-                                                        <Text>{`x${byProducts[uid].number}`}</Text>
-                                                    </Flex.Item>
-                                                </Flex>
-                                            </List.Item>))}
+                                        : byOrders[orderId].products.length == 0 ?
+                                            <List.Item>
+                                                <Text>此订单无产品信息</Text>
+                                            </List.Item>
+                                            : byOrders[orderId].products.map(uid => (
+                                                <List.Item key={uid}>
+                                                    <Flex>
+                                                        <Flex.Item style={{ flex: 2 }}>
+                                                            <Text>{byProducts[uid].product.name}</Text>
+                                                        </Flex.Item>
+                                                        <Flex.Item >
+                                                            <Text>{`x${byProducts[uid].number}`}</Text>
+                                                        </Flex.Item>
+                                                    </Flex>
+                                                </List.Item>))}
                                 </List>
                             </Accordion.Panel>
                         </Accordion>
@@ -304,6 +349,7 @@ const mapStateToProps = (state, props) => {
         orders: getOrders(state),
         byOrders: getByOrders(state),
         byProducts: getByProducts(state),
+        byBoxes: getByBoxes(state),
     };
 };
 

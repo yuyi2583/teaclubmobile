@@ -18,7 +18,13 @@ class BoxList extends Component {
             this.setState({ isReservation: true });
         }
         const shopId = this.props.shop.uid;
-        this.props.fetchBoxes(shopId);
+        this.props.fetchBoxes(shopId)
+            .then(() => {
+                this.setState({ loaded: true });
+            })
+            .catch(err => {
+                this.props.toast("fail", err, 6)
+            });
     }
 
     getCurrentReservationStatus = (boxId) => {

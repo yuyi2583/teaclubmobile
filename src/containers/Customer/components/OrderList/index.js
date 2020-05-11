@@ -26,12 +26,19 @@ class OrderList extends Component {
 
     render() {
         const { byCustomers, byOrders, byCustomerFaces, byProducts, byBoxes } = this.props;
-        const { faceId } = this.props.match.params;
-        const customerId = byCustomerFaces[faceId].customerId;
+        const { uid, type } = this.props.match.params;
+        const customerId = type == "search" ? uid : byCustomerFaces[uid].customerId;
         const hasRegister = customerId != undefined;
         const isDataNull = byCustomers[customerId] == undefined;
         const { refreshing } = this.state;
-        //TODO 未注册用户
+        //未注册用户
+        if (!hasRegister) {
+            return (
+                <View style={{ width: "100%", height: "100%", justifyContent: "center", alignItems: "center" }}>
+                    <Text>未注册客户,无记录...</Text>
+                </View>
+            )
+        }
         if (isDataNull) {
             return (
                 <View style={{ width: "100%", height: "100%", justifyContent: "center", alignItems: "center" }}>
@@ -46,8 +53,9 @@ class OrderList extends Component {
                     refreshControl={
                         <RefreshControl refreshing={refreshing} onRefresh={this.onRefresh} />
                     }>
-                    {
-                        byCustomers[customerId].orders.map((uid) => {
+                    {byCustomers[customerId].orders.length == 0 ?
+                        <Text style={{textAlign:"center",marginTop:10}}>此用户暂无订单信息...</Text>
+                        : byCustomers[customerId].orders.map((uid) => {
                             if (byOrders[uid] == undefined) {
                                 return null;
                             }
@@ -73,8 +81,8 @@ class OrderList extends Component {
                                                                 <Text>包厢预约：{byBoxes[byOrders[uid].reservations[0].boxId].name}</Text>
                                                                 <Text>时间段：</Text>
                                                                 {
-                                                                    byOrders[uid].reservations.map((reservation,index) => (
-                                                                        <Text key={index}>{timeStampConvertToFormatTime(reservation.reservationTime)}~{timeStampConvertToFormatTime(reservation.reservationTime+byBoxes[byOrders[uid].reservations[0].boxId].duration*1000*60)}</Text>
+                                                                    byOrders[uid].reservations.map((reservation, index) => (
+                                                                        <Text key={index}>{timeStampConvertToFormatTime(reservation.reservationTime)}~{timeStampConvertToFormatTime(reservation.reservationTime + byBoxes[byOrders[uid].reservations[0].boxId].duration * 1000 * 60)}</Text>
                                                                     ))
                                                                 }
 

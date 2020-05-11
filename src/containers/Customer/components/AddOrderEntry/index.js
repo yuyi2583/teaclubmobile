@@ -5,6 +5,7 @@ import { Link } from "react-router-native";
 import { matchUrl } from "../../../../utils/commonUtils";
 
 function AddOrderEntry(props) {
+    console.log("order entry",`${props.match.url}/box`)
     return (
         <>
             <WingBlank size="lg">

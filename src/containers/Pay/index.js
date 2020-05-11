@@ -42,8 +42,8 @@ class Pay extends Component {
             const result = JSON.parse(e.data)
             console.log("wspay receive message", result);
             if (result.code == 200) {
-                this.props.toast("success", result.data);
-                this.props.history.replace(matchUrl.CUSTOMER(this.props.currentCustomer.uid))
+                this.props.toast("success", result.data,6);
+                this.props.history.goBack();
             }
         };
 

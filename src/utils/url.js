@@ -5,7 +5,8 @@ const WSHOME="ws://192.168.1.228:8080/websocket";
 export default {
    login:()=>`${HOST}/login`,
    verifyToken:(token)=>`${HOST}/verifyToken/${token}`,
-   fetchCustomer:(uid)=>`${HOST}/customer/${uid}`,
+   fetchCustomer:(uid,type)=>`${HOST}/customer/${uid}/${type}`,
+   fetchSearchCustomer:(uid)=>`${HOST}/searchCustomer/${uid}`,
    customerPickUp:()=>`${HOST}/ordershipped`,
    fetchBoxes:(shopId)=>`${HOST}/boxes/${shopId}`,
    fetchReservations:(boxId,startTime,endTime)=>`${HOST}/reservations/${boxId}/${startTime}/${endTime}`,
@@ -13,6 +14,7 @@ export default {
    pay:(customerId,value)=>`${HOST}/simulatePay/${customerId}/${value}`,
    fetchProducts:(shopId)=>`${HOST}/products/${shopId}`,
    placeOrder:()=>`${HOST}/order`,
+   searchCustomer:(searchText)=>`${HOST}/search/${searchText}`,
 }
 
 export const ws={

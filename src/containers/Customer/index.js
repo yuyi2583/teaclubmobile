@@ -3,7 +3,7 @@ import { Text, View, TouchableOpacity, Alert, ScrollView } from "react-native";
 import { Card, WhiteSpace, WingBlank, Flex, Button, ActivityIndicator, Tabs, Icon, Badge, Modal, InputItem, Result, Portal } from "@ant-design/react-native";
 import { bindActionCreators } from "redux";
 import { connect } from "react-redux";
-import { actions as customerActions, getCustomers, getByCustomers, getByCustomerFaces, getCustomerFaces } from "../../redux/modules/customer";
+import { actions as customerActions, getCustomers, getByCustomers, getByCustomerFaces, getCustomerFaces, getBySearchCustomers, getSearchCustomers } from "../../redux/modules/customer";
 import { actions as newOrderActions, getSelectedSlot, getSelectedProduct } from "../../redux/modules/newOrder";
 import { getByBoxes } from "../../redux/modules/box";
 import { getByProducts, getByPhotos, getByActivityRules } from "../../redux/modules/product";
@@ -42,23 +42,10 @@ class Customer extends Component {
         clerkDiscount: 100,
     }
 
-    componentDidMount() {
-        const { faceId } = this.props.match.params;
-        console.log("in customer view", faceId);
-        this.props.fetchCustomer(faceId)
-            .then(() => {
-
-            })
-            .catch(err => {
-                //TODO 网络问题的展示
-            })
-    }
-
-    //TODO customer有时会变成undefined
     getButtonDispaly = () => {
         const { pathname } = this.props.location;
-        var reservationRegex = /\/mobile\/customer\/\d+\/box\/\d+/;
-        var productRegex = /\/mobile\/customer\/\d+\/product\/\d+/;
+        var reservationRegex = /\/mobile\/customer\/(face|search)\/\d+\/box\/\d+/;
+        var productRegex = /\/mobile\/customer\/(face|search)\/\d+\/product\/\d+/;
         let display = null;
         if (reservationRegex.test(pathname)) {
             display = <Button type="primary" size="lg" style={{ width: 100, height: 30 }} onPress={this.reservation}>确认预约</Button>;
@@ -81,9 +68,8 @@ class Customer extends Component {
     }
 
     getAmountDisplay = () => {
-        //TODO 店员折扣
         const { selectedProduct, byActivityRules, byProducts } = this.props;
-        const {clerkDiscount}=this.state;
+        const { clerkDiscount } = this.state;
         let activityBitmap = new Object();//用于记录已参与的活动
         let ingot = 0;
         let credit = 0;
@@ -137,13 +123,13 @@ class Customer extends Component {
                 if (activityRule2 == null) {
                     //折扣
                     ingot += ruleIngot * (100 - activityRule1) / 100;
-                    credit += ruleCredit ;
+                    credit += ruleCredit;
                 } else {
                     //购物满xx赠/减xx积分/元宝
                     if (ruleIngot > activityRule1) {//满足条件
                         if (activityRule2.operation == "minus") {//满减元宝,满赠在后台处理
                             // if (activityRule2.currency == "ingot") {
-                                ruleIngot -= activityRule2.number;
+                            ruleIngot -= activityRule2.number;
                             // } else {
                             //     ruleCredit -= activityRule2.number;
                             // }
@@ -154,7 +140,9 @@ class Customer extends Component {
                 }
             }
         }
-        ingot*=clerkDiscount/100;
+        //计算店员优惠
+        ingot *= clerkDiscount / 100;
+        ingot = ingot.toFixed(2);//保留2位小数
         console.log("ingot", ingot, "credit", credit);
         return {
             ingot,
@@ -167,7 +155,9 @@ class Customer extends Component {
         const { pathname } = this.props.location;
         const pathnameSplit = pathname.split("/")
         const boxId = pathnameSplit[pathnameSplit.length - 1];
-        const { currentCustomer, user, selectedSlot, byBoxes } = this.props;
+        const { currentCustomer, user, selectedSlot, byBoxes, shop } = this.props;
+        const { type, uid } = this.props.match.params;
+        const customerId = type == "search" ? uid : currentCustomer.customerId;
         const { duration, price } = byBoxes[boxId];
         //TODO 区分是否注册
         if (selectedSlot.length == 0) {
@@ -192,9 +182,10 @@ class Customer extends Component {
         }
         confirmationDisplay += `总价:${amountDisplay}`;
         const order = {
-            customer: { uid: currentCustomer.customerId },
+            customer: { uid: customerId },
             clerk: { uid: user.uid, name: user.name },
-            reservations
+            reservations,
+            placeOrderWay: { uid: shop.uid }
         }
         Alert.alert(
             "确认预约？",
@@ -208,8 +199,8 @@ class Customer extends Component {
                     text: "确认", onPress: () => {
                         this.props.reserve(order)
                             .then(() => {
-                                this.props.toast("success", "预约成功");
-                                this.props.history.push(matchUrl.CUSTOMER(this.props.currentCustomer.uid))
+                                this.props.toast("success", "预约成功", 6);
+                                // this.props.history.push(matchUrl.CUSTOMER(this.props.currentCustomer.uid))
                             })
                             .catch(err => {
                                 console.log("err", err);
@@ -225,7 +216,7 @@ class Customer extends Component {
                                             {
                                                 text: "充值", onPress: () => {
                                                     this.props.resetAfterCompleteReservation();
-                                                    this.props.history.push(`/mobile/pay/${currentCustomer.customerId}`);
+                                                    this.props.history.push(`/mobile/pay/${customerId}`);
                                                 }
                                             }
                                         ],
@@ -299,9 +290,10 @@ class Customer extends Component {
                 },
                 {
                     text: "确认", onPress: () => {
-                        const { currentCustomer, selectedProduct, user, byProducts, byActivityRules } = this.props;
-                        const customerId = currentCustomer.customerId;
-                        const {clerkDiscount}=this.state;
+                        const { currentCustomer, selectedProduct, user, byProducts, byActivityRules, shop } = this.props;
+                        const { type, uid } = this.props.match.params;
+                        const customerId = type == "search" ? uid : currentCustomer.customerId;
+                        const { clerkDiscount } = this.state;
                         let products = new Array();
                         for (var i in selectedProduct) {
                             let activityRuleId = null;
@@ -325,22 +317,23 @@ class Customer extends Component {
                             customer: { uid: customerId },
                             clerk: { uid: user.uid },
                             products,
-                            clerkDiscount
+                            clerkDiscount,
+                            placeOrderWay: { uid: shop.uid },
                         }
                         const key = this.props.toast("loading", 'Loading....', 0);
                         this.props.placeOrder(order)
                             .then(() => {
                                 Portal.remove(key);
-                                this.setState({ visible: false,clerkDiscount:100 });
+                                this.setState({ visible: false, clerkDiscount: 100 });
                                 this.props.toast("success", "下单成功", 8);
-                                this.props.history.replace(`${matchUrl.CUSTOMER(currentCustomer.uid)}`);
-                                this.props.fetchCustomer(currentCustomer.uid)
-                                    .then(() => {
+                                this.props.history.goBack();
+                                // this.props.fetchCustomer(currentCustomer.uid)
+                                //     .then(() => {
 
-                                    })
-                                    .catch(err => {
-                                        //TODO 网络问题的展示
-                                    })
+                                //     })
+                                //     .catch(err => {
+                                //         this.props.toast("fail", err, 6);
+                                //     })
                             })
                             .catch(err => {
                                 Portal.remove(key);
@@ -357,11 +350,25 @@ class Customer extends Component {
         this.setState({ clerkDiscountModalVisible: true })
     }
 
+    getBalanceDisplay = () => {
+        const { bySearchCustomers, byCustomers, user, currentCustomer } = this.props;
+        const { uid, type } = this.props.match.params;
+        const customerId = type == "search" ? uid : currentCustomer.customerId;
+        const hasRegister = customerId != undefined
+        if (!hasRegister) {
+            return "";
+        }
+        const { balance } = type == "search" ? bySearchCustomers[uid] : byCustomers[customerId];
+        let display = `余额:${balance.ingot}元宝 ${balance.credit}积分`;
+        return display;
+
+    }
+
     render() {
-        const { byCustomerFaces, byCustomers, user } = this.props;
-        const { faceId } = this.props.match.params;
-        const customerId = byCustomerFaces[faceId].customerId;
-        const hasRegister = customerId != undefined;
+        const { byCustomerFaces, byCustomers, user, currentCustomer } = this.props;
+        const { uid, type } = this.props.match.params;
+        const customerId = type == "search" ? uid : currentCustomer.customerId;
+        const hasRegister = customerId != undefined
         const isDataNull = byCustomers[customerId] == undefined;
         const { redirectTo } = this.state;
         if (redirectTo) {
@@ -374,7 +381,7 @@ class Customer extends Component {
 
         }
         //TODO 未注册用户
-        if (isDataNull) {
+        if (hasRegister && isDataNull) {
             return (
                 <View style={{ width: "100%", height: "100%", justifyContent: "center", alignItems: "center" }}>
                     <ActivityIndicator size="large" />
@@ -384,14 +391,20 @@ class Customer extends Component {
         const displayButton = this.getButtonDispaly();
         const productModalDisplay = this.getProductModalDisplay();
         const { ingot, credit, activityBitmap } = this.getAmountDisplay();
+        const balanceDisplay=this.getBalanceDisplay();
         return (
             <Flex direction="column" style={{ width: "100%", height: "100%" }}>
                 <Flex.Item style={{ flex: 1, width: "100%" }}>
                     <Card full style={{ height: "100%" }}>
                         <Card.Header
-                            title={<WingBlank><Text>{hasRegister ? byCustomers[customerId].name : "未注册用户"}</Text></WingBlank>}
+                            title={
+                                <WingBlank>
+                                    <Text>{hasRegister ? currentCustomer.name : "未注册用户"}</Text>
+                                    <Text>{balanceDisplay}</Text>
+                                </WingBlank>
+                            }
                             thumbStyle={{ width: 60, height: 60 }}
-                            thumb={hasRegister ? byCustomers[customerId].avatar.photo : byCustomerFaces[faceId].image}
+                            thumb={hasRegister ? byCustomers[customerId].avatar.photo : byCustomerFaces[uid].image}
                             extra={
                                 <WingBlank
                                     style={{
@@ -496,7 +509,7 @@ class Customer extends Component {
                     closable
                     footer={[
                         { text: '取消', onPress: () => this.setState({ clerkDiscountModalVisible: false }) },
-                        { text: '确认', onPress: () => this.setState({ clerkDiscountModalVisible: false })},
+                        { text: '确认', onPress: () => this.setState({ clerkDiscountModalVisible: false }) },
                     ]}
                 >
                     <View style={{ paddingVertical: 20 }}>
@@ -507,12 +520,12 @@ class Customer extends Component {
                         type="number"
                         value={this.state.clerkDiscount}
                         onChange={value => {
-                            if(value<0){
-                                this.props.toast("fail",`优惠折扣不能小于0`,6);
+                            if (value < 0) {
+                                this.props.toast("fail", `优惠折扣不能小于0`, 6);
                                 return;
                             }
-                            if(value<user.leastDiscount){
-                                this.props.toast("fail",`您不能提供低于${user.leastDiscount}%的折扣`,6);
+                            if (value < user.leastDiscount) {
+                                this.props.toast("fail", `您不能提供低于${user.leastDiscount}%的折扣`, 6);
                                 return;
                             }
                             this.setState({
@@ -520,7 +533,7 @@ class Customer extends Component {
                             });
                         }}
                         extra="%"
-                        placeholder="折扣数值（1~100）"/>
+                        placeholder="折扣数值（1~100）" />
                 </Modal>
             </Flex>
         )
@@ -539,6 +552,8 @@ const mapStateToProps = (state, props) => {
         byProducts: getByProducts(state),
         byPhotos: getByPhotos(state),
         byActivityRules: getByActivityRules(state),
+        searchCustomers: getSearchCustomers(state),
+        bySearchCustomers: getBySearchCustomers(state)
     };
 };
 
