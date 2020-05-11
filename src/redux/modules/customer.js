@@ -135,13 +135,14 @@ const reducer = (state = initialState, action) => {
             customerFaces = state.customerFaces;
             byCustomerFaces = state.byCustomerFaces;
             action.customerFaces.forEach(uid => {
-                if (customerFaces.indexOf(uid) == -1) {
-                    customerFaces.push(uid);
-                    byCustomerFaces = { ...byCustomerFaces, [uid]: action.byCustomerFaces[uid] };
+                if (state.customerFaces.indexOf(uid) == -1) {
+                    customerFaces = state.customerFaces.concat([uid]);
+                    byCustomerFaces = { ...state.byCustomerFaces, [uid]: action.byCustomerFaces[uid] };
                 }
             })
             return { ...state, customerFaces, byCustomerFaces };
         case types.FETCH_CUSTOMER:
+            customers = state.customers;
             if (state.customers.indexOf(action.customer.uid) == -1) {
                 customers = state.customers.concat([action.customer.uid]);
             }
