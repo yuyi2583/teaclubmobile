@@ -22,5 +22,6 @@ export const ws={
    pay:(customerId)=>`${WSHOME}/pay/${customerId}`,
    face:(clerkId)=>`${WSHOME}/face/${clerkId}`,
    box:(shopid)=>`${WSHOME}/box/${shopid}`,
+   balance:(customerId)=>`${WSHOME}/balance/${customerId}`,
 
 }

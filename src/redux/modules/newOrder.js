@@ -46,7 +46,7 @@ export const actions = {
                 dispatch(appActions.finishRequest(requestType.updateRequest));
                 if (!result.error) {
                     console.log("result.data", result.data)
-                    dispatch(orderActions.completeOrder(result.data));
+                    dispatch(orderActions.completeReservation(result.data));
                     dispatch({ type: types.RESET_AFTER_COMPLETE_RESERVATION });
                     return Promise.resolve();
                 } else {

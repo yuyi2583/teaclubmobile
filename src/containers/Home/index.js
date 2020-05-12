@@ -9,6 +9,7 @@ import { Switch, Route, Link, BackButton } from "react-router-native";
 import connectRoute from "../../utils/connectRoute";
 import asyncComponent from "../../utils/AsyncComponent";
 import { ws } from "../../utils/url";
+import { WebSocketBoxConnect, WebSocketFaceConnect } from "../../utils/websocket";
 
 
 const AsyncCustomer = connectRoute(asyncComponent(() => import("../Customer")));
@@ -34,56 +35,8 @@ class Home extends React.Component {
     }
 
     componentDidMount() {
-        this.WebSocketBoxConnect();
-        this.WebSocketFaceConnect();
-    }
-
-    WebSocketFaceConnect = () => {
-        var wsface = new WebSocket(ws.face(this.props.user.uid));
-        wsface.onopen = () => {
-            // connection opened
-            wsface.send('something'); // send a message
-        };
-
-        wsface.onmessage = (e) => {
-            // a message was received
-            console.log("wsface receive message", JSON.parse(e.data));
-            this.props.receieveCustomerFaces(JSON.parse(e.data));
-        };
-
-        wsface.onerror = (e) => {
-            // an error occurred
-            console.log("wsface websocket error", e.message);
-        };
-
-        wsface.onclose = (e) => {
-            // connection closed
-            console.log("wsface websocket close", e.code, e.reason);
-        };
-    }
-
-    WebSocketBoxConnect = () => {
-        var wsbox = new WebSocket(ws.box(this.props.user.shop.uid));
-        wsbox.onopen = () => {
-            // connection opened
-            wsbox.send('something'); // send a message
-        };
-
-        wsbox.onmessage = (e) => {
-            // a message was received
-            console.log("wsbox receive message", JSON.parse(e.data));
-            // this.props.receieveCustomerFaces(JSON.parse(e.data));
-        };
-
-        wsbox.onerror = (e) => {
-            // an error occurred
-            console.log("wsbox websocket error", e.message);
-        };
-
-        wsbox.onclose = (e) => {
-            // connection closed
-            console.log("wsbox websocket close", e.code, e.reason);
-        };
+        WebSocketBoxConnect(this.props.user.shop.uid,this.props);
+        WebSocketFaceConnect(this.props.user.uid,this.props);
     }
 
     searchCustomer = () => {
@@ -131,7 +84,7 @@ class Home extends React.Component {
                                 }
                             />
                             <Route
-                                path={`${match.url}/pay/:customerId`}
+                                path={`${match.url}/pay/:customerId/:type`}
                                 render={props =>
                                     <AsyncPay {...props} />
                                 }
@@ -151,8 +104,8 @@ class Home extends React.Component {
                                                     key={uid}
                                                     component={TouchableOpacity}
                                                     onPress={() => {
-                                                        this.props.setCurrentCustomer(uid,"face");
-                                                        this.props.fetchCustomer(uid,"face");
+                                                        this.props.setCurrentCustomer(uid, "face");
+                                                        this.props.fetchCustomer(uid, "face");
                                                     }}
                                                     to={`${match.url}/customer/face/${uid}`} >
                                                     <CustomerFace content={byCustomerFaces[uid]} />
@@ -188,8 +141,8 @@ class Home extends React.Component {
                                                             key={uid}
                                                             component={TouchableOpacity}
                                                             onPress={() => {
-                                                                this.props.setCurrentCustomer(uid,"search");
-                                                                this.props.fetchCustomer(uid,"search");
+                                                                this.props.setCurrentCustomer(uid, "search");
+                                                                this.props.fetchCustomer(uid, "search");
                                                             }}
                                                             to={`${match.url}/customer/search/${uid}`} >
                                                             <CustomerFace content={bySearchCustomers[uid]} />

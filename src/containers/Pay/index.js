@@ -5,7 +5,9 @@ import { ws } from "../../utils/url";
 import { bindActionCreators } from "redux";
 import { connect } from "react-redux";
 import { actions as newOrderActions } from "../../redux/modules/newOrder";
-import {matchUrl} from "../../utils/commonUtils";
+import { actions as customerActions } from "../../redux/modules/customer";
+import { matchUrl } from "../../utils/commonUtils";
+import { WebSocketBalanceConnect } from "../../utils/websocket";
 
 const tabs = [
     { title: '微信支付' },
@@ -26,42 +28,21 @@ class Pay extends Component {
     }
 
     componentDidMount() {
-        this.WebSocketPayConnect()
+        const { customerId, type } = this.props.match.params;
+        WebSocketBalanceConnect(customerId, type, this.props);
     }
 
-    WebSocketPayConnect = () => {
-        const { customerId } = this.props.match.params;
-        var wspay = new WebSocket(ws.pay(customerId));
-        wspay.onopen = () => {
-            // connection opened
-            wspay.send('something'); // send a message
-        };
-
-        wspay.onmessage = (e) => {
-            // a message was received
-            const result = JSON.parse(e.data)
-            console.log("wspay receive message", result);
-            if (result.code == 200) {
-                this.props.toast("success", result.data,6);
-                this.props.history.goBack();
-            }
-        };
-
-        wspay.onerror = (e) => {
-            // an error occurred
-            console.log("wspay websocket error", e.message);
-        };
-
-        wspay.onclose = (e) => {
-            // connection closed
-            console.log("wspay websocket close", e.code, e.reason);
-        };
-    }
 
     pay = () => {
         const { customerId } = this.props.match.params;
         const { value } = this.state;
-        this.props.pay(customerId, value);
+        this.props.pay(customerId, value)
+            .then(() => {
+                this.props.toast("success", "支付成功", 6);
+            })
+            .catch(err => {
+                this.props.toast("fail", err, 6)
+            });
     }
 
     render() {
@@ -102,6 +83,7 @@ const mapStateToProps = (state, props) => {
 const mapDispatchToProps = (dispatch) => {
     return {
         ...bindActionCreators(newOrderActions, dispatch),
+        ...bindActionCreators(customerActions, dispatch),
     };
 };
 

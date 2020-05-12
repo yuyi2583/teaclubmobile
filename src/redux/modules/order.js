@@ -45,7 +45,7 @@ export const actions = {
         }
     },
     //客户完成订单
-    completeOrder: (data) => {
+    completeReservation: (data) => {
         return (dispatch) => {
             dispatch({
                 type: types.COMPLETE_RESERVATION,

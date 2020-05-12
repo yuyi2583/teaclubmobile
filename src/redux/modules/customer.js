@@ -3,7 +3,7 @@ import { actions as orderActions } from "./order";
 import { post, get } from "../../utils/request";
 import url from "../../utils/url";
 import { storeData } from "../../utils/storage";
-import { TOKEN,requestType } from "../../utils/common";
+import { TOKEN, requestType } from "../../utils/common";
 
 const initialState = {
     customerFaces: new Array(),
@@ -25,7 +25,8 @@ export const types = {
     SEARCH_CUSTOMERS: "CUSTOMER/SEARCH_CUSTOMERS",
     CURRENT_SEARCH_CUSTOMER: "CUSTOMER/CURRENT_SEARCH_CUSTOMER",
     FETCH_SEARCH_CUSTOMER: "CUSTOMER/FETCH_SEARCH_CUSTOMER",
-    REGISTER:"CUSTOMER/REGISTER",
+    REGISTER: "CUSTOMER/REGISTER",
+    CHANGE_BALANCE: "CUSTOMER/CHANGE_BALANCE",
 };
 
 //action creators
@@ -37,10 +38,10 @@ export const actions = {
         }
     },
     //根据user_face_info的uid获取客户信息
-    fetchCustomer: (uid,type) => {
+    fetchCustomer: (uid, type) => {
         return (dispatch) => {
             dispatch(appActions.startRequest());
-            return get(url.fetchCustomer(uid,type)).then((result) => {
+            return get(url.fetchCustomer(uid, type)).then((result) => {
                 if (!result.error) {
                     console.log("result.data", result.data)
                     let data = convertCustomerToPlainStructure(result.data);
@@ -94,15 +95,15 @@ export const actions = {
         }
     },
     //未注册客户注册
-    register:(faceId,customer)=>{
+    register: (faceId, customer) => {
         return (dispatch) => {
             dispatch(appActions.startRequest());
-            const params={...customer};
-            return post(url.register(faceId),params).then((result) => {
+            const params = { ...customer };
+            return post(url.register(faceId), params).then((result) => {
                 dispatch(appActions.finishRequest());
                 if (!result.error) {
                     console.log("result.data", result.data)
-                    dispatch(registerSuccess(convertCustomerToPlainStructure(result.data)));
+                    dispatch(registerSuccess(faceId, convertCustomerToPlainStructure(result.data)));
                     return Promise.resolve();
                 } else {
                     dispatch(appActions.setError(result.error));
@@ -110,12 +111,24 @@ export const actions = {
                 }
             });
         }
+    },
+    //展示客户当前余额
+    changeBalance: (customerId, type, balance) => {
+        return (dispatch) => {
+            dispatch(({
+                type: types.CHANGE_BALANCE,
+                customerId,
+                customerType: type,
+                balance
+            }))
+        }
     }
 }
 
-const registerSuccess=({customer})=>({
-    type:types.REGISTER,
-    customer
+const registerSuccess = (faceId, { customer }) => ({
+    type: types.REGISTER,
+    customer,
+    faceId
 })
 
 const convertCustomersToPlainStructure = (data) => {
@@ -125,7 +138,7 @@ const convertCustomersToPlainStructure = (data) => {
         searchCustomers.push(customer.uid);
         if (!bySearchCustomers[customer.uid]) {
             bySearchCustomers[customer.uid] = customer;
-            bySearchCustomers[customer.uid].avatar.photo=`data:image/jpeg;base64,${bySearchCustomers[customer.uid].avatar.photo}`
+            bySearchCustomers[customer.uid].avatar.photo = `data:image/jpeg;base64,${bySearchCustomers[customer.uid].avatar.photo}`
         }
     });
     return {
@@ -150,7 +163,7 @@ const convertCustomerToPlainStructure = (data) => {
                 byOrders[order.uid] = order;
             }
         });
-        if(data.avatar!=null){
+        if (data.avatar != null) {
             data.avatar.photo = `data:image/jpeg;base64,${data.avatar.photo}`;
         }
         data.orders = orders;
@@ -203,7 +216,17 @@ const reducer = (state = initialState, action) => {
     let byCustomers;
     let customerFaces;
     let byCustomerFaces;
+    let searchCustomers;
+    let bySearchCustomers;
     switch (action.type) {
+        case types.CHANGE_BALANCE:
+            if (action.customerType == "face") {
+                byCustomers = { ...state.byCustomers, [action.customerId]: { ...state.byCustomers[action.customerId], balance: action.balance } };
+                return { ...state, byCustomers };
+            } else {
+                bySearchCustomers = { ...state.bySearchCustomers, [action.customerId]: { ...state.bySearchCustomers[action.customerId], balance: action.balance } };
+                return { ...state, bySearchCustomers };
+            }
         case types.SEARCH_CUSTOMERS:
             return { ...state, searchCustomers: action.searchCustomers, bySearchCustomers: action.bySearchCustomers };
         case types.ADD_CUSTOMER_ORDER:
@@ -226,6 +249,13 @@ const reducer = (state = initialState, action) => {
             })
             return { ...state, customerFaces, byCustomerFaces };
         case types.REGISTER:
+            customers = state.customers;
+            if (state.customers.indexOf(action.customer.uid) == -1) {
+                customers = state.customers.concat([action.customer.uid]);
+            }
+            byCustomers = { ...state.byCustomers, [action.customer.uid]: action.customer };
+            byCustomerFaces = { ...state.byCustomerFaces, [action.faceId]: { ...state.byCustomerFaces[action.faceId], customerId: action.customer.uid, name: action.customer.name } };
+            return { ...state, customers, byCustomers, byCustomerFaces, currentCustomer: { ...action.customer, customerId: action.customer.uid } };
         case types.FETCH_CUSTOMER:
             customers = state.customers;
             if (state.customers.indexOf(action.customer.uid) == -1) {

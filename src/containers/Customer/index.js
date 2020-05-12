@@ -14,6 +14,8 @@ import connectRoute from "../../utils/connectRoute";
 import asyncComponent from "../../utils/AsyncComponent";
 import { timeStampConvertToFormatTime } from "../../utils/timeUtils";
 import Stepper from "../../components/Stepper";
+import { ws } from "../../utils/url";
+import {WebSocketBalanceConnect} from "../../utils/websocket";
 
 
 const AsyncAddOrderEntry = connectRoute(asyncComponent(() => import("./components/AddOrderEntry")));
@@ -43,6 +45,16 @@ class Customer extends Component {
         registerVisible: false,
         registerName: "",
         registerPhone: ""
+    }
+
+    componentDidMount(){
+        const { currentCustomer} = this.props;
+        const { type, uid } = this.props.match.params;
+        const customerId = type == "search" ? uid : currentCustomer.customerId;
+        const hasRegister = customerId != undefined;
+        if(hasRegister){
+            WebSocketBalanceConnect(customerId,type,this.props);
+        }
     }
 
     getButtonDispaly = () => {
@@ -225,7 +237,7 @@ class Customer extends Component {
                                             {
                                                 text: "充值", onPress: () => {
                                                     this.props.resetAfterCompleteReservation();
-                                                    this.props.history.push(`/mobile/pay/${customerId}`);
+                                                    this.props.history.push(`/mobile/pay/${customerId}/${type}`);
                                                 }
                                             }
                                         ],
@@ -289,6 +301,16 @@ class Customer extends Component {
     }
 
     placeOrder = (activityBitmap) => {
+        const { currentCustomer } = this.props;
+        const { type, uid } = this.props.match.params;
+        const customerId = type == "search" ? uid : currentCustomer.customerId;
+        const hasRegister = customerId != undefined;
+        //区分是否注册,未注册则提供客户姓名和联系方式
+        if (!hasRegister) {
+            this.setState({ registerVisible: true });
+            console.log("not register")
+            return;
+        }
         Alert.alert(
             "确认？",
             `确认订单信息无误？`,
@@ -437,8 +459,8 @@ class Customer extends Component {
                             }
                             thumbStyle={{ width: 60, height: 60 }}
                             thumb={hasRegister ?
-                                byCustomers[customerId].avatar == null ? 
-                                <Image source={require("../../assets/default.jpg")} style={{width:60,height:60}}/>
+                                byCustomers[customerId].avatar == null ?
+                                    <Image source={require("../../assets/default.jpg")} style={{ width: 60, height: 60 }} />
                                     : byCustomers[customerId].avatar.photo : byCustomerFaces[uid].image
                             }
                             extra={

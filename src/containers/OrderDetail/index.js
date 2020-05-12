@@ -45,7 +45,7 @@ class OrderDetail extends Component {
         let button = null;
         if (status != "unpayed")
             if (deliverMode == "selfPickUp") {
-                button = ""
+                button = ""//TODO
             }
     }
 
@@ -108,7 +108,7 @@ class OrderDetail extends Component {
                                             </Flex.Item>
                                             <Flex.Item style={{ flex: byOrders[orderId].deliverMode == "selfPickUp" && byOrders[orderId].status.status == "payed" ? 2 : 3 }}>
                                                 <Flex>
-                                                    <Text>{orderStatus[byOrders[orderId].status.status]}(处理人:{byOrders[orderId].status.processer.name})</Text>
+                                                    <Text>{orderStatus[byOrders[orderId].status.status]}{byOrders[orderId].status.processer==null?null:`(处理人:${byOrders[orderId].status.processer.name})`}</Text>
                                                     {byOrders[orderId].status.status=="unpay"?
                                                     <TouchableOpacity onPress={() => this.props.history.push(`/mobile/pay/${customerId}`)}>
                                                         <Text style={{ marginLeft: 15, textDecorationLine: "underline", textDecorationColor: "#108EE9", color: "#108EE9" }}>付款</Text>
@@ -119,7 +119,7 @@ class OrderDetail extends Component {
                                                 byOrders[orderId].deliverMode == "selfPickUp" && byOrders[orderId].status.status == "payed" ?
                                                     <Flex.Item>
                                                         <Button type="primary" size="small" style={{ width: 80 }} onPress={this.pickUp}>提货</Button>
-                                                    </Flex.Item> : null
+                                                    </Flex.Item> : null 
                                             }
                                         </Flex>
                                     </List.Item>
@@ -326,7 +326,7 @@ class OrderDetail extends Component {
                                                 <List.Item key={uid}>
                                                     <Flex>
                                                         <Flex.Item style={{ flex: 2 }}>
-                                                            <Text>{byProducts[uid].product.name}</Text>
+                                                            <Text>{byProducts[uid].product.name}</Text> 
                                                         </Flex.Item>
                                                         <Flex.Item >
                                                             <Text>{`x${byProducts[uid].number}`}</Text>
