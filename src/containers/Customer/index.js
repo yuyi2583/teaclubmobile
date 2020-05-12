@@ -15,7 +15,7 @@ import asyncComponent from "../../utils/AsyncComponent";
 import { timeStampConvertToFormatTime } from "../../utils/timeUtils";
 import Stepper from "../../components/Stepper";
 import { ws } from "../../utils/url";
-import {WebSocketBalanceConnect} from "../../utils/websocket";
+import { WebSocketBalanceConnect } from "../../utils/websocket";
 
 
 const AsyncAddOrderEntry = connectRoute(asyncComponent(() => import("./components/AddOrderEntry")));
@@ -47,13 +47,13 @@ class Customer extends Component {
         registerPhone: ""
     }
 
-    componentDidMount(){
-        const { currentCustomer} = this.props;
+    componentDidMount() {
+        const { currentCustomer } = this.props;
         const { type, uid } = this.props.match.params;
         const customerId = type == "search" ? uid : currentCustomer.customerId;
         const hasRegister = customerId != undefined;
-        if(hasRegister){
-            WebSocketBalanceConnect(customerId,type,this.props);
+        if (hasRegister) {
+            WebSocketBalanceConnect(customerId, type, this.props);
         }
     }
 
@@ -83,24 +83,33 @@ class Customer extends Component {
     }
 
     getAmountDisplay = () => {
-        const { selectedProduct, byActivityRules, byProducts } = this.props;
+        const { selectedProduct, byActivityRules, byProducts, currentCustomer } = this.props;
         const { clerkDiscount } = this.state;
+        const { customerType } = currentCustomer;
         let activityBitmap = new Object();//用于记录已参与的活动
         let ingot = 0;
         let credit = 0;
-        console.log("selected product", selectedProduct);
+        console.log("selectedProduct", selectedProduct);
         for (var key in selectedProduct) {
             //遍历该产品所参与的活动，产品所参与的活动已按照优先级降序排序
             //即产品优先参与优先级高的活动，每个产品一次只能参与一个活动
             //积分不参与折扣
             const rule = byProducts[key].activityRules;
-            if (rule.length == 0) {//产品不参与活动
-                ingot += byProducts[key].price.ingot * selectedProduct[key];
-                credit += byProducts[key].price.credit * selectedProduct[key];
-            }
-            console.log("key", key);
+            let isOneOfRuleApplicable = false;
             for (var i = 0; i < rule.length; i++) {
                 const activityId = byActivityRules[rule[i]].activity.uid;
+                const { activityApplyForCustomerTypes } = byActivityRules[rule[i]];
+                //判断用户的vip等级能否参与此活动
+                let isApplicable = false;
+                activityApplyForCustomerTypes.forEach(type => {
+                    if (type.uid == customerType.uid) {
+                        isApplicable = true;
+                    }
+                });
+                //vip等级不够则继续判断该产品下一个参与的活动
+                if (!isApplicable) {
+                    continue;
+                }
                 //判断是否与已有活动互斥
                 let isMutex = false;
                 for (var activityKey in activityBitmap) {
@@ -113,6 +122,7 @@ class Customer extends Component {
                     continue;
                 }
                 //否则将其记录在bitmap中并结束遍历
+                isOneOfRuleApplicable = true;
                 if (!activityBitmap[activityId] || !activityBitmap[activityId][rule[i]]) {
                     activityBitmap[activityId] = new Object();
                     activityBitmap[activityId][rule[i]] = new Array();
@@ -123,9 +133,15 @@ class Customer extends Component {
                 }
                 break;
             }
+            //若这个产品的所有优惠规则不适用
+            //即不参加活动
+            if (!isOneOfRuleApplicable) {
+                ingot += byProducts[key].price.ingot * selectedProduct[key];
+                credit += byProducts[key].price.credit * selectedProduct[key];
+            }
         }
-        console.log("activity bitmap", activityBitmap);
         //计算总价
+        console.log("activityBitmap", activityBitmap);
         for (var activityId in activityBitmap) {
             for (var ruleId in activityBitmap[activityId]) {
                 const { activityRule1, activityRule2 } = byActivityRules[ruleId];
@@ -158,7 +174,6 @@ class Customer extends Component {
         //计算店员优惠
         ingot *= clerkDiscount / 100;
         ingot = ingot.toFixed(2);//保留2位小数
-        console.log("ingot", ingot, "credit", credit);
         return {
             ingot,
             credit,
@@ -218,12 +233,15 @@ class Customer extends Component {
                 },
                 {
                     text: "确认", onPress: () => {
+                        const key=this.props.toast("loading","loading...",0);
                         this.props.reserve(order)
                             .then(() => {
+                                Portal.remove(key);
                                 this.props.toast("success", "预约成功", 6);
                                 // this.props.history.push(matchUrl.CUSTOMER(this.props.currentCustomer.uid))
                             })
                             .catch(err => {
+                                Portal.remove(key);
                                 console.log("err", err);
                                 if (err.code == 500700) {//余额不足，跳转付费二维码
                                     Alert.alert(
@@ -330,8 +348,10 @@ class Customer extends Component {
                             let activityRuleId = null;
                             byProducts[i].activityRules.forEach(ruleId => {
                                 const activityId = byActivityRules[ruleId].activity.uid;
-                                if (activityBitmap[activityId][ruleId].indexOf(i) != -1) {
-                                    activityRuleId = ruleId;
+                                if (activityBitmap[activityId] && activityBitmap[activityId][ruleId]) {
+                                    if (activityBitmap[activityId][ruleId].indexOf(i) != -1) {
+                                        activityRuleId = ruleId;
+                                    }
                                 }
                             })
                             let orderProduct = { product: { uid: i }, number: selectedProduct[i] };
@@ -351,20 +371,15 @@ class Customer extends Component {
                             clerkDiscount,
                             placeOrderWay: { uid: shop.uid },
                         }
+                        console.log("order", order);
                         const key = this.props.toast("loading", 'Loading....', 0);
+                        this.setState({ visible: false });
                         this.props.placeOrder(order)
                             .then(() => {
                                 Portal.remove(key);
-                                this.setState({ visible: false, clerkDiscount: 100 });
+                                this.setState({ clerkDiscount: 100 });
                                 this.props.toast("success", "下单成功", 8);
                                 this.props.history.goBack();
-                                // this.props.fetchCustomer(currentCustomer.uid)
-                                //     .then(() => {
-
-                                //     })
-                                //     .catch(err => {
-                                //         this.props.toast("fail", err, 6);
-                                //     })
                             })
                             .catch(err => {
                                 Portal.remove(key);

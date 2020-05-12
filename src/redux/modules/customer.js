@@ -138,7 +138,9 @@ const convertCustomersToPlainStructure = (data) => {
         searchCustomers.push(customer.uid);
         if (!bySearchCustomers[customer.uid]) {
             bySearchCustomers[customer.uid] = customer;
-            bySearchCustomers[customer.uid].avatar.photo = `data:image/jpeg;base64,${bySearchCustomers[customer.uid].avatar.photo}`
+            if (bySearchCustomers[customer.uid].avatar != null) {
+                bySearchCustomers[customer.uid].avatar.photo = `data:image/jpeg;base64,${bySearchCustomers[customer.uid].avatar.photo}`
+            }
         }
     });
     return {
