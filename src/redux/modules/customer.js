@@ -25,6 +25,7 @@ export const types = {
     SEARCH_CUSTOMERS: "CUSTOMER/SEARCH_CUSTOMERS",
     CURRENT_SEARCH_CUSTOMER: "CUSTOMER/CURRENT_SEARCH_CUSTOMER",
     FETCH_SEARCH_CUSTOMER: "CUSTOMER/FETCH_SEARCH_CUSTOMER",
+    REGISTER:"CUSTOMER/REGISTER",
 };
 
 //action creators
@@ -91,8 +92,31 @@ export const actions = {
                 }
             });
         }
+    },
+    //未注册客户注册
+    register:(faceId,customer)=>{
+        return (dispatch) => {
+            dispatch(appActions.startRequest());
+            const params={...customer};
+            return post(url.register(faceId),params).then((result) => {
+                dispatch(appActions.finishRequest());
+                if (!result.error) {
+                    console.log("result.data", result.data)
+                    dispatch(registerSuccess(convertCustomerToPlainStructure(result.data)));
+                    return Promise.resolve();
+                } else {
+                    dispatch(appActions.setError(result.error));
+                    return Promise.reject(result.error);
+                }
+            });
+        }
     }
 }
+
+const registerSuccess=({customer})=>({
+    type:types.REGISTER,
+    customer
+})
 
 const convertCustomersToPlainStructure = (data) => {
     let searchCustomers = new Array();
@@ -125,8 +149,10 @@ const convertCustomerToPlainStructure = (data) => {
             if (!byOrders[order.uid]) {
                 byOrders[order.uid] = order;
             }
-        })
-        data.avatar.photo = `data:image/jpeg;base64,${data.avatar.photo}`;
+        });
+        if(data.avatar!=null){
+            data.avatar.photo = `data:image/jpeg;base64,${data.avatar.photo}`;
+        }
         data.orders = orders;
         return {
             customer: data,
@@ -199,7 +225,7 @@ const reducer = (state = initialState, action) => {
                 }
             })
             return { ...state, customerFaces, byCustomerFaces };
-        // case types.FETCH_SEARCH_CUSTOMER:
+        case types.REGISTER:
         case types.FETCH_CUSTOMER:
             customers = state.customers;
             if (state.customers.indexOf(action.customer.uid) == -1) {

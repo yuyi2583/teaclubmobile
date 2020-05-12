@@ -1,5 +1,5 @@
 import React, { Component } from "react";
-import { Text, View, TouchableOpacity, Alert, ScrollView } from "react-native";
+import { Text, View, TouchableOpacity, Alert, ScrollView, Image } from "react-native";
 import { Card, WhiteSpace, WingBlank, Flex, Button, ActivityIndicator, Tabs, Icon, Badge, Modal, InputItem, Result, Portal } from "@ant-design/react-native";
 import { bindActionCreators } from "redux";
 import { connect } from "react-redux";
@@ -40,6 +40,9 @@ class Customer extends Component {
         visible: false,
         clerkDiscountModalVisible: false,
         clerkDiscount: 100,
+        registerVisible: false,
+        registerName: "",
+        registerPhone: ""
     }
 
     getButtonDispaly = () => {
@@ -159,9 +162,15 @@ class Customer extends Component {
         const { type, uid } = this.props.match.params;
         const customerId = type == "search" ? uid : currentCustomer.customerId;
         const { duration, price } = byBoxes[boxId];
-        //TODO 区分是否注册
+        const hasRegister = customerId != undefined;
         if (selectedSlot.length == 0) {
             this.props.toast("info", "您未选择预约时间段");
+            return;
+        }
+        //区分是否注册,未注册则提供客户姓名和联系方式
+        if (!hasRegister) {
+            this.setState({ registerVisible: true });
+            console.log("not register")
             return;
         }
         const reservations = selectedSlot.map(reservationTime => ({ reservationTime, boxId }));
@@ -364,6 +373,29 @@ class Customer extends Component {
 
     }
 
+    register = () => {
+        const { registerName, registerPhone } = this.state;
+        if (registerName.length == 0) {
+            this.props.toast("fail", "客户名称不能为空", 6);
+            return;
+        }
+        var phoneRegx = /^1(3|4|5|6|7|8|9)\d{9}$/;
+        if (!phoneRegx.test(registerPhone)) {
+            this.props.toast("fail", "联系方式格式错误，请重新输入", 6);
+            return;
+        }
+        const { uid, type } = this.props.match.params;//此处uid为faceId
+        const customer = { name: registerName, contact: registerPhone };
+        this.setState({ registerVisible: false });
+        this.props.register(uid, customer)
+            .then(() => {
+                this.props.toast("success", "注册成功", 6);
+            })
+            .catch(err => {
+                this.props.toast("fail", err, 6);
+            })
+    }
+
     render() {
         const { byCustomerFaces, byCustomers, user, currentCustomer } = this.props;
         const { uid, type } = this.props.match.params;
@@ -391,7 +423,7 @@ class Customer extends Component {
         const displayButton = this.getButtonDispaly();
         const productModalDisplay = this.getProductModalDisplay();
         const { ingot, credit, activityBitmap } = this.getAmountDisplay();
-        const balanceDisplay=this.getBalanceDisplay();
+        const balanceDisplay = this.getBalanceDisplay();
         return (
             <Flex direction="column" style={{ width: "100%", height: "100%" }}>
                 <Flex.Item style={{ flex: 1, width: "100%" }}>
@@ -404,7 +436,11 @@ class Customer extends Component {
                                 </WingBlank>
                             }
                             thumbStyle={{ width: 60, height: 60 }}
-                            thumb={hasRegister ? byCustomers[customerId].avatar.photo : byCustomerFaces[uid].image}
+                            thumb={hasRegister ?
+                                byCustomers[customerId].avatar == null ? 
+                                <Image source={require("../../assets/default.jpg")} style={{width:60,height:60}}/>
+                                    : byCustomers[customerId].avatar.photo : byCustomerFaces[uid].image
+                            }
                             extra={
                                 <WingBlank
                                     style={{
@@ -534,6 +570,40 @@ class Customer extends Component {
                         }}
                         extra="%"
                         placeholder="折扣数值（1~100）" />
+                </Modal>
+                <Modal
+                    title="请先注册"
+                    transparent
+                    maskClosable={false}
+                    visible={this.state.registerVisible}
+                    footer={[
+                        { text: '取消', onPress: () => this.setState({ registerVisible: false }) },
+                        { text: '确认', onPress: this.register },
+                    ]}
+                >
+                    <View style={{ paddingVertical: 20 }}>
+                        <Text style={{ textAlign: 'center' }}>该用户还未注册，请先注册</Text>
+                    </View>
+                    <InputItem
+                        clear
+                        type="text"
+                        value={this.state.registerName}
+                        onChange={value => {
+                            this.setState({
+                                registerName: value,
+                            });
+                        }}
+                        placeholder="姓名" />
+                    <InputItem
+                        clear
+                        type="text"
+                        value={this.state.registerPhone}
+                        onChange={value => {
+                            this.setState({
+                                registerPhone: value,
+                            });
+                        }}
+                        placeholder="联系方式" />
                 </Modal>
             </Flex>
         )

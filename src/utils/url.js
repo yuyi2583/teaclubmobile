@@ -15,6 +15,7 @@ export default {
    fetchProducts:(shopId)=>`${HOST}/products/${shopId}`,
    placeOrder:()=>`${HOST}/order`,
    searchCustomer:(searchText)=>`${HOST}/search/${searchText}`,
+   register:(faceId)=>`${HOST}/register/${faceId}`,
 }
 
 export const ws={
