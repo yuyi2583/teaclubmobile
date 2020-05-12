@@ -27,6 +27,7 @@ export const types = {
     FETCH_SEARCH_CUSTOMER: "CUSTOMER/FETCH_SEARCH_CUSTOMER",
     REGISTER: "CUSTOMER/REGISTER",
     CHANGE_BALANCE: "CUSTOMER/CHANGE_BALANCE",
+    REFRESH_CUSTOMER_ORDERS: "CUSTOMER/REFRESH_CUSTOMER_ORDERS",
 };
 
 //action creators
@@ -37,7 +38,6 @@ export const actions = {
             dispatch(receieveCustomerFacesSuccess(convertCustomerFacesToPlainStructure(customerFaces)));
         }
     },
-    //根据user_face_info的uid获取客户信息
     fetchCustomer: (uid, type) => {
         return (dispatch) => {
             dispatch(appActions.startRequest());
@@ -121,6 +121,15 @@ export const actions = {
                 customerType: type,
                 balance
             }))
+        }
+    },
+    refreshCustomerOrders: (customerId, orders) => {
+        return (dispatch) => {
+            dispatch({
+                type: types.REFRESH_CUSTOMER_ORDERS,
+                orders,
+                customerId
+            })
         }
     }
 }
@@ -221,6 +230,9 @@ const reducer = (state = initialState, action) => {
     let searchCustomers;
     let bySearchCustomers;
     switch (action.type) {
+        case types.REFRESH_CUSTOMER_ORDERS:
+            byCustomers = { ...state.byCustomers, [action.customerId]: { ...state.byCustomers[action.customerId], orders: action.orders } };
+            return { ...state, byCustomers };
         case types.CHANGE_BALANCE:
             if (action.customerType == "face") {
                 byCustomers = { ...state.byCustomers, [action.customerId]: { ...state.byCustomers[action.customerId], balance: action.balance } };

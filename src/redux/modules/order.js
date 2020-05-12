@@ -1,5 +1,5 @@
 import { actions as appActions } from "./app";
-import {actions as customerActions} from "./customer";
+import { actions as customerActions } from "./customer";
 import { post, get, put } from "../../utils/request";
 import url from "../../utils/url";
 import { storeData } from "../../utils/storage";
@@ -16,13 +16,14 @@ export const types = {
     FETCH_CUSTOMER_ORDERS: "ORDERS/FETCH_CUSTOMER_ORDERS",
     CUSTOMER_PICK_UP: "ORDERS/CUSTOMER_PICK_UP",
     COMPLETE_RESERVATION: "ORDERS/COMPLETE_RESERVATION",
+    FETCH_ORDERS: "ORDER/FETCH_ORDERS",
 };
 
 //action creators
 export const actions = {
     fetchCustomerOrders: ({ orders, byOrders }) => {
         return (dispatch) => {
-            dispatch(fetchCustomerOrdersSuccess(convertOrdersToPlainStructure(orders, byOrders)))
+            dispatch(fetchCustomerOrdersSuccess(convertOrdersToPlainStructure({orders, byOrders})))
         }
     },
     //买家提货
@@ -51,8 +52,47 @@ export const actions = {
                 type: types.COMPLETE_RESERVATION,
                 order: data
             });
-            dispatch(customerActions.addCustomerOrder(data.customer.uid,data.uid));
+            dispatch(customerActions.addCustomerOrder(data.customer.uid, data.uid));
         }
+    },
+    fetchOrders: (customerId) => {
+        return (dispatch) => {
+            // dispatch(appActions.startRequest());
+            return get(url.fetchOrders(customerId)).then((result) => {
+                // dispatch(appActions.finishRequest());
+                if (!result.error) {
+                    console.log("result.data", result.data)
+                    const data=convertOrdersToPlainStructure(convertRefreshOrdersToPlainStructure(result.data))
+                    dispatch(fetchOrdersSuccess(data));
+                    dispatch(customerActions.refreshCustomerOrders(customerId,data.orders));
+                    return Promise.resolve();
+                } else {
+                    dispatch(appActions.setError(result.error));
+                    return Promise.reject(result.error);
+                }
+            });
+        }
+    }
+}
+const fetchOrdersSuccess = ({ orders, byOrders,byProducts }) => ({
+    type: types.FETCH_ORDERS,
+    orders,
+    byOrders,
+    byProducts
+})
+const convertRefreshOrdersToPlainStructure = (data) => {
+    console.log("convertRefreshOrdersToPlainStructure")
+    let orders = new Array();
+    let byOrders = new Object();
+    data.forEach(order => {
+        orders.push(order.uid);
+        if (!byOrders[order.uid]) {
+            byOrders[order.uid] = order;
+        }
+    });
+    return {
+        orders,
+        byOrders
     }
 }
 
@@ -79,7 +119,8 @@ const customerPickUpSuccess = ({ order, products, byProducts }) => ({
     byProducts
 })
 
-const convertOrdersToPlainStructure = (orders, byOrders) => {
+const convertOrdersToPlainStructure = ({orders, byOrders}) => {
+    console.log("convertOrdersToPlainStructure",orders)
     let byProducts = new Object();
     orders.forEach(uid => {
         let products = new Array();
@@ -127,6 +168,7 @@ const reducer = (state = initialState, action) => {
                 byProducts[uid] = action.byProducts[uid];
             });
             return { ...state, orders, byOrders, byProducts };
+        case types.FETCH_ORDERS:
         case types.FETCH_CUSTOMER_ORDERS:
             return { ...state, orders: action.orders, byOrders: action.byOrders, byProducts: action.byProducts };
         default:

@@ -1,6 +1,6 @@
 import React, { Component } from "react";
 import { View, Text, ScrollView, RefreshControl, TouchableOpacity } from "react-native";
-import { Card, WingBlank, ActivityIndicator, Flex } from "@ant-design/react-native";
+import { Card, WingBlank, ActivityIndicator, Flex, Modal } from "@ant-design/react-native";
 import { bindActionCreators } from "redux";
 import { connect } from "react-redux";
 import { actions as orderActions, getByOrders, getOrders, getByProducts } from "../../../../redux/modules/order";
@@ -18,10 +18,25 @@ class OrderList extends Component {
     }
 
     onRefresh = () => {
+        const { uid, type } = this.props.match.params;
+        const customerId = type == "search" ? uid : byCustomerFaces[uid].customerId;
+        const hasRegister = customerId != undefined;
+        if (!hasRegister) {
+            Modal.alert(
+                "未注册用户",
+                "该用户未注册，暂无订单信息"
+            )
+            return
+        }
         this.setState({ refreshing: true })
-        setTimeout(() => {
-            this.setState({ refreshing: false })
-        }, 2000);
+        this.props.fetchOrders(customerId)
+            .then(() => {
+                this.setState({ refreshing: false })
+            })
+            .catch(err => {
+                this.setState({ refreshing: false });
+                this.props.toast("fail", err, 6);
+            })
     };
 
     render() {
@@ -54,7 +69,7 @@ class OrderList extends Component {
                         <RefreshControl refreshing={refreshing} onRefresh={this.onRefresh} />
                     }>
                     {byCustomers[customerId].orders.length == 0 ?
-                        <Text style={{textAlign:"center",marginTop:10}}>此用户暂无订单信息...</Text>
+                        <Text style={{ textAlign: "center", marginTop: 10 }}>此用户暂无订单信息...</Text>
                         : byCustomers[customerId].orders.map((uid) => {
                             if (byOrders[uid] == undefined) {
                                 return null;
@@ -151,6 +166,7 @@ const mapStateToProps = (state, props) => {
 const mapDispatchToProps = (dispatch) => {
     return {
         ...bindActionCreators(customerActions, dispatch),
+        ...bindActionCreators(orderActions, dispatch),
     };
 };
 
