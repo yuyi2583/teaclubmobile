@@ -38,6 +38,13 @@ export const actions = {
             dispatch(receieveCustomerFacesSuccess(convertCustomerFacesToPlainStructure(customerFaces)));
         }
     },
+    //   若type==face
+    //   根据user_face_info的uid获取客户信息
+    //   若此face有对应的customer则返回
+    //   否则返回null
+    //   若type==search
+    //   uid为customer id，
+    //  据此返回对应customer
     fetchCustomer: (uid, type) => {
         return (dispatch) => {
             dispatch(appActions.startRequest());
@@ -47,7 +54,7 @@ export const actions = {
                     let data = convertCustomerToPlainStructure(result.data);
                     if (data != null) {
                         dispatch(fetchCustomerSuccess(data.customer));
-                        dispatch(orderActions.fetchCustomerOrders(data));
+                        // dispatch(orderActions.fetchCustomerOrders(data));
                     }
                     dispatch(appActions.finishRequest());
                     return Promise.resolve();
@@ -166,22 +173,22 @@ const fetchCustomersSuccess = ({ searchCustomers, bySearchCustomers }) => ({
 
 const convertCustomerToPlainStructure = (data) => {
     if (data != null) {
-        let orders = new Array();
-        let byOrders = new Object();
-        data.orders.forEach(order => {
-            orders.push(order.uid);
-            if (!byOrders[order.uid]) {
-                byOrders[order.uid] = order;
-            }
-        });
+        // let orders = new Array();
+        // let byOrders = new Object();
+        // data.orders.forEach(order => {
+        //     orders.push(order.uid);
+        //     if (!byOrders[order.uid]) {
+        //         byOrders[order.uid] = order;
+        //     }
+        // });
         if (data.avatar != null) {
             data.avatar.photo = `data:image/jpeg;base64,${data.avatar.photo}`;
         }
-        data.orders = orders;
+        // data.orders = orders;
         return {
             customer: data,
-            orders,
-            byOrders,
+            // orders,
+            // byOrders,
         }
     }
     return null;

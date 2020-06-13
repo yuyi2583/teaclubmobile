@@ -3,6 +3,7 @@ import { View, Text, Image, ScrollView, TouchableOpacity } from "react-native";
 import { Flex, Tabs, Card, WhiteSpace, WingBlank, InputItem, Icon } from "@ant-design/react-native";
 import { bindActionCreators } from "redux";
 import { connect } from "react-redux";
+import {actions as orderActions} from "../../redux/modules/order";
 import { actions as customersActions, getByCustomers, getCustomers, getByCustomerFaces, getCustomerFaces, getSearchCustomers, getBySearchCustomers } from "../../redux/modules/customer";
 import CustomerFace from "./components/CustomerFace";
 import { Switch, Route, Link, BackButton } from "react-router-native";
@@ -84,7 +85,7 @@ class Home extends React.Component {
                                 }
                             />
                             <Route
-                                path={`${match.url}/pay/:customerId/:type`}
+                                path={`${match.url}/pay/:customerId/`}
                                 render={props =>
                                     <AsyncPay {...props} />
                                 }
@@ -104,6 +105,7 @@ class Home extends React.Component {
                                                     key={uid}
                                                     component={TouchableOpacity}
                                                     onPress={() => {
+                                                        this.props.resetOrders();
                                                         this.props.setCurrentCustomer(uid, "face");
                                                         this.props.fetchCustomer(uid, "face");
                                                     }}
@@ -141,6 +143,7 @@ class Home extends React.Component {
                                                             key={uid}
                                                             component={TouchableOpacity}
                                                             onPress={() => {
+                                                                this.props.resetOrders();
                                                                 this.props.setCurrentCustomer(uid, "search");
                                                                 this.props.fetchCustomer(uid, "search");
                                                             }}
@@ -178,6 +181,7 @@ const mapStateToProps = (state, props) => {
 const mapDispatchToProps = (dispatch) => {
     return {
         ...bindActionCreators(customersActions, dispatch),
+        ...bindActionCreators(orderActions, dispatch),
     };
 };
 

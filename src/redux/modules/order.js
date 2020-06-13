@@ -4,11 +4,14 @@ import { post, get, put } from "../../utils/request";
 import url from "../../utils/url";
 import { storeData } from "../../utils/storage";
 import { TOKEN } from "../../utils/common";
+import { State } from "react-native-gesture-handler";
 
 const initialState = {
     orders: new Array(),
     byOrders: new Object(),
     byProducts: new Object(),
+    reservationOrders: new Array(),
+    byReservationOrders: new Object(),
 }
 
 //action types
@@ -17,13 +20,15 @@ export const types = {
     CUSTOMER_PICK_UP: "ORDERS/CUSTOMER_PICK_UP",
     COMPLETE_RESERVATION: "ORDERS/COMPLETE_RESERVATION",
     FETCH_ORDERS: "ORDER/FETCH_ORDERS",
+    RESET_ORDERS: "ORDER/RESET_ORDERS",
+    FETCH_CUSTOMER_RESERVATIONS: "ORDER/FETCH_CUSTOMER_RESERVATIONS",
 };
 
 //action creators
 export const actions = {
     fetchCustomerOrders: ({ orders, byOrders }) => {
         return (dispatch) => {
-            dispatch(fetchCustomerOrdersSuccess(convertOrdersToPlainStructure({orders, byOrders})))
+            dispatch(fetchCustomerOrdersSuccess(convertOrdersToPlainStructure({ orders, byOrders })))
         }
     },
     //买家提货
@@ -55,16 +60,30 @@ export const actions = {
             dispatch(customerActions.addCustomerOrder(data.customer.uid, data.uid));
         }
     },
-    fetchOrders: (customerId) => {
+    //获取客户订单信息（10条）
+    fetchOrders: (customerId, page) => {
         return (dispatch) => {
-            // dispatch(appActions.startRequest());
-            return get(url.fetchOrders(customerId)).then((result) => {
-                // dispatch(appActions.finishRequest());
+            return get(url.fetchOrders(customerId, page)).then((result) => {
                 if (!result.error) {
                     console.log("result.data", result.data)
-                    const data=convertOrdersToPlainStructure(convertRefreshOrdersToPlainStructure(result.data))
+                    const data = convertOrdersToPlainStructure(result.data);
                     dispatch(fetchOrdersSuccess(data));
-                    dispatch(customerActions.refreshCustomerOrders(customerId,data.orders));
+                    return Promise.resolve(result.data);
+                } else {
+                    dispatch(appActions.setError(result.error));
+                    return Promise.reject(result.error);
+                }
+            });
+        }
+    },
+    //获取客户预约
+    fetchCustomerReservations: (customerId, page) => {
+        return (dispatch) => {
+            return get(url.fetchCustomerReservations(customerId, page)).then((result) => {
+                if (!result.error) {
+                    console.log("result.data", result.data)
+                    const data = convertReservationsToPlainStructure(result.data);
+                    dispatch(fetchCustomerReservationssSuccess(data));
                     return Promise.resolve();
                 } else {
                     dispatch(appActions.setError(result.error));
@@ -72,27 +91,64 @@ export const actions = {
                 }
             });
         }
+    },
+    resetOrders: () => {
+        return (dispatch) => {
+            dispatch({
+                type: types.RESET_ORDERS
+            })
+        }
     }
 }
-const fetchOrdersSuccess = ({ orders, byOrders,byProducts }) => ({
+
+const fetchCustomerReservationssSuccess = ({ reservationOrders, byReservationOrders }) => ({
+    type: types.FETCH_CUSTOMER_RESERVATIONS,
+    byReservationOrders,
+    reservationOrders
+})
+
+const convertReservationsToPlainStructure = (data) => {
+    let reservationOrders = new Array();
+    let byReservationOrders = new Object();
+    data.forEach(order => {
+        reservationOrders.push(order.uid);
+        if (!byReservationOrders[order.uid]) {
+            byReservationOrders[order.uid] = { ...order };
+        }
+    });
+    return {
+        reservationOrders,
+        byReservationOrders
+    }
+}
+
+const fetchOrdersSuccess = ({ orders, byOrders, byProducts }) => ({
     type: types.FETCH_ORDERS,
     orders,
     byOrders,
     byProducts
 })
-const convertRefreshOrdersToPlainStructure = (data) => {
-    console.log("convertRefreshOrdersToPlainStructure")
+const convertOrdersToPlainStructure = (data) => {
     let orders = new Array();
     let byOrders = new Object();
+    let byProducts = new Object();
     data.forEach(order => {
         orders.push(order.uid);
+        let products = new Array();
+        order.products.forEach(product => {
+            products.push(product.uid);
+            if (!byProducts[product.uid]) {
+                byProducts[product.uid] = product;
+            }
+        });
         if (!byOrders[order.uid]) {
-            byOrders[order.uid] = order;
+            byOrders[order.uid] = { ...order, products };
         }
     });
     return {
         orders,
-        byOrders
+        byOrders,
+        byProducts
     }
 }
 
@@ -119,25 +175,6 @@ const customerPickUpSuccess = ({ order, products, byProducts }) => ({
     byProducts
 })
 
-const convertOrdersToPlainStructure = ({orders, byOrders}) => {
-    console.log("convertOrdersToPlainStructure",orders)
-    let byProducts = new Object();
-    orders.forEach(uid => {
-        let products = new Array();
-        byOrders[uid].products.forEach(product => {
-            products.push(product.uid);
-            if (!byProducts[product.uid]) {
-                byProducts[product.uid] = product;
-            }
-        });
-        byOrders[uid].products = products;
-    });
-    return {
-        orders,
-        byOrders,
-        byProducts
-    }
-}
 
 const fetchCustomerOrdersSuccess = ({ orders, byOrders, byProducts }) => ({
     type: types.FETCH_CUSTOMER_ORDERS,
@@ -148,10 +185,25 @@ const fetchCustomerOrdersSuccess = ({ orders, byOrders, byProducts }) => ({
 
 //reducers
 const reducer = (state = initialState, action) => {
-    let orders;
-    let byOrders;
-    let byProducts;
+    let orders = new Array();
+    let byOrders = new Object();
+    let byProducts = new Object();
+    let reservationOrders = new Array();
+    let byReservationOrders = new Object();
     switch (action.type) {
+        case types.FETCH_CUSTOMER_RESERVATIONS:
+            reservationOrders = action.reservationOrders.filter(uid => {
+                if (state.reservationOrders.indexOf(uid) == -1) {
+                    return true;
+                }
+                return false;
+            })
+            return {
+                ...state, reservationOrders: state.reservationOrders.concat(reservationOrders),
+                byReservationOrders: { ...state.byReservationOrders, ...action.byReservationOrders },
+            };
+        case types.RESET_ORDERS:
+            return { ...state, orders, byOrders, byProducts, reservationOrders, byReservationOrders };
         case types.COMPLETE_RESERVATION:
             orders = state.orders.concat([action.order.uid]);
             byOrders = { ...state.byOrders, [action.order.uid]: action.order };
@@ -169,6 +221,13 @@ const reducer = (state = initialState, action) => {
             });
             return { ...state, orders, byOrders, byProducts };
         case types.FETCH_ORDERS:
+            orders = action.orders.filter(uid => {
+                if (state.orders.indexOf(uid) == -1) {
+                    return true;
+                }
+                return false;
+            })
+            return { ...state, orders: state.orders.concat(orders), byOrders: { ...state.byOrders, ...action.byOrders }, byProducts: { ...state.byProducts, ...action.byProducts } };
         case types.FETCH_CUSTOMER_ORDERS:
             return { ...state, orders: action.orders, byOrders: action.byOrders, byProducts: action.byProducts };
         default:
@@ -182,3 +241,5 @@ export default reducer;
 export const getOrders = (state) => state.order.orders;
 export const getByOrders = (state) => state.order.byOrders;
 export const getByProducts = (state) => state.order.byProducts;
+export const getReservationOrders = (state) => state.order.reservationOrders;
+export const getByReservationOrders = (state) => state.order.byReservationOrders;

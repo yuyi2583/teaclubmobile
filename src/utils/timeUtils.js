@@ -61,3 +61,15 @@ export const convertTimestampToHHMM = (timestamp) => {
     let m = (date.getMinutes() < 10 ? '0' + date.getMinutes() : date.getMinutes());
     return h + m;
 }
+
+/**
+ * 将时间戳转化为yyyy-MM-dd格式返回
+ * @param {*} timestamp 
+ */
+export const convertTimestampToYYYYMMDD = (timestamp) => {
+    let date = new Date(timestamp);
+    let Y = date.getFullYear() + '-';
+    let M = (date.getMonth() + 1 < 10 ? '0' + (date.getMonth() + 1) : date.getMonth() + 1) + '-';
+    let D = (date.getDate() < 10 ? '0' + date.getDate() : date.getDate()) + ' ';
+    return Y + M + D ;
+}

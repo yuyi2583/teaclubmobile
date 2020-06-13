@@ -21,7 +21,7 @@ class CustomerFace extends Component {
                             }
                             extra={
                                 <Flex direction="column">
-                                    <Flex.Item><Text>{content.name ? content.name : "未注册客户"}</Text></Flex.Item>
+                                    <Flex.Item><Text>{content.name ? content.name : "未识别客户"}</Text></Flex.Item>
                                 </Flex>
                             }
                         />

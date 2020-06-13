@@ -4,6 +4,7 @@ const headers = new Headers({
   });
   
   function get(url) {
+    console.log(`GET ${url}`);
     return fetch(url, {
       method: "GET",
       headers: headers,
@@ -18,6 +19,7 @@ const headers = new Headers({
   }
   
   function _delete(url) {
+    console.log(`DELETE ${url}`);
     return fetch(url, {
       method: "DELETE",
       headers: headers,
@@ -32,6 +34,7 @@ const headers = new Headers({
   }
   
   function put(url, params) {
+    console.log(`PUT ${url}`);
     return fetch(url, {
       method: "PUT",
       headers: headers,
@@ -48,6 +51,7 @@ const headers = new Headers({
   
   
   function post(url, params) {
+    console.log(`POST ${url}`);
     return fetch(url, {
       method: "POST",
       headers: headers,

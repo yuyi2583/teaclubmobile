@@ -64,7 +64,7 @@ const convertProductsToPlainStructure = (data) => {
                 byActivityRules[item.uid] = item;
             }
         })
-        activityRules.sort((a,b)=>{
+        activityRules.sort((a,b)=>{//优先级数字越小等级越高
             return byActivityRules[a].activity.priority-byActivityRules[b].activity.priority;
         })
         if (productTypes.indexOf(product.type.uid) == -1) {

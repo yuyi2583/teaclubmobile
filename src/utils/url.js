@@ -16,7 +16,8 @@ export default {
    placeOrder:()=>`${HOST}/order`,
    searchCustomer:(searchText)=>`${HOST}/search/${searchText}`,
    register:(faceId)=>`${HOST}/register/${faceId}`,
-   fetchOrders:(customerId)=>`${HOST}/orders/${customerId}`,
+   fetchOrders:(customerId,page)=>`${HOST}/orders/${customerId}/${page}`,
+   fetchCustomerReservations:(customerId,page)=>`${HOST}/reservations/${customerId}/${page}`,
 }
 
 export const ws={

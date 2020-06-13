@@ -3,10 +3,10 @@ import { View, Text, ScrollView, RefreshControl, TouchableOpacity } from "react-
 import { Card, WingBlank, ActivityIndicator, Flex, Modal } from "@ant-design/react-native";
 import { bindActionCreators } from "redux";
 import { connect } from "react-redux";
-import { actions as orderActions, getByOrders, getOrders, getByProducts } from "../../../../redux/modules/order";
+import { actions as orderActions, getReservationOrders, getByReservationOrders } from "../../../../redux/modules/order";
 import { actions as boxActions, getByBoxes } from "../../../../redux/modules/box";
 import { actions as customerActions, getByCustomerFaces, getByCustomers, getCustomerFaces, getCustomers, getCurrentCustomer } from "../../../../redux/modules/customer";
-import { timeStampConvertToFormatTime } from "../../../../utils/timeUtils";
+import { convertTimestampToHHMM,convertTimestampToYYYYMMDD ,timeStampConvertToFormatTime} from "../../../../utils/timeUtils";
 import { orderStatus } from "../../../../utils/common";
 import { Link } from "react-router-native";
 import { matchUrl } from "../../../../utils/commonUtils";
@@ -25,7 +25,7 @@ class OrderList extends Component {
         if (currentCustomer.customerId) {
             this.setState({ refreshing: true })
             this.props.resetOrders();
-            this.props.fetchOrders(currentCustomer.customerId, 0)
+            this.props.fetchCustomerReservations(currentCustomer.customerId, 0)
                 .then(() => {
                     this.setState({ refreshing: false, page: 0 })
                 })
@@ -36,7 +36,7 @@ class OrderList extends Component {
         } else {
             Modal.alert(
                 "未注册用户",
-                "该用户未注册，暂无订单信息"
+                "该用户未注册，暂无预约信息"
             )
         }
     };
@@ -46,7 +46,7 @@ class OrderList extends Component {
         const { page } = this.state;
         if (currentCustomer.customerId) {
             this.setState({ refreshing: true })
-            this.props.fetchOrders(currentCustomer.customerId, page)
+            this.props.fetchCustomerReservations(currentCustomer.customerId, page)
                 .then(() => {
                     this.setState({ refreshing: false })
                 })
@@ -67,7 +67,7 @@ class OrderList extends Component {
             const { currentCustomer } = this.props;
             if (currentCustomer.customerId && !isBottom) {
                 this.setState({ refreshing: true })
-                this.props.fetchOrders(currentCustomer.customerId, page + 1)
+                this.props.fetchCustomerReservations(currentCustomer.customerId, page + 1)
                     .then((res) => {
                         this.setState({ refreshing: false })
                         if (res.length == 0) {
@@ -90,8 +90,8 @@ class OrderList extends Component {
     }
 
     render() {
-        const { byCustomers, byOrders, byCustomerFaces, byProducts, byBoxes, orders } = this.props;
-        const { uid, type } = this.props.match.params; 
+        const { byCustomers, byReservationOrders, byCustomerFaces, byReservations, byBoxes, reservationOrders } = this.props;
+        const { uid, type } = this.props.match.params;
         const customerId = type == "search" ? uid : byCustomerFaces[uid].customerId;
         const hasRegister = customerId != undefined;
         const isDataNull = byCustomers[customerId] == undefined;
@@ -119,10 +119,10 @@ class OrderList extends Component {
                     refreshControl={
                         <RefreshControl refreshing={refreshing} onRefresh={this.onRefresh} />
                     }>
-                    {orders.length == 0 ?
+                    {reservationOrders.length == 0 ?
                         <Text style={{ textAlign: "center", marginTop: 10 }}>此用户暂无订单信息...</Text>
-                        : orders.map((uid) => {
-                            if (byOrders[uid] == undefined) {
+                        : reservationOrders.map((uid) => {
+                            if (byReservationOrders[uid] == undefined) {
                                 return null;
                             }
                             return (
@@ -136,44 +136,24 @@ class OrderList extends Component {
                                     <WingBlank size="lg" style={{ marginTop: 10 }}>
                                         <Card >
                                             <Card.Header
-                                                title={timeStampConvertToFormatTime(byOrders[uid].orderTime)}
-                                                extra={`状态：${orderStatus[byOrders[uid].status.status]}`}
+                                                title={timeStampConvertToFormatTime(byReservationOrders[uid].orderTime)}
+                                                extra={`状态：${orderStatus[byReservationOrders[uid].status.status]}`}
                                             />
                                             <Card.Body>
                                                 <Flex direction="column" style={{ alignItems: "flex-start", margin: 16 }}>
                                                     {
-                                                        byOrders[uid].products.length == 0 ?
-                                                            <Text>无产品信息</Text> :
-                                                            byOrders[uid].products.length <= 3 ?
-                                                                byOrders[uid].products.map(uid => (
-                                                                    <Flex.Item key={uid}>
-                                                                        <Flex direction="row" style={{ width: "100%" }}>
-                                                                            <Flex.Item style={{ flex: 1 }}>
-                                                                                <Text>{byProducts[uid].product.name}</Text>
-                                                                            </Flex.Item>
-                                                                            <Flex.Item style={{ flex: 2 }}>
-                                                                                <Text>x{byProducts[uid].number}</Text>
-                                                                            </Flex.Item>
-                                                                        </Flex>
-                                                                    </Flex.Item>
-                                                                ))
-                                                                : <>
-                                                                    {byOrders[uid].products.filter((uid, index) => index < 3).map(uid => (
-                                                                        <Flex.Item key={uid}>
-                                                                            <Flex direction="row" style={{ width: "100%" }}>
-                                                                                <Flex.Item style={{ flex: 1 }}>
-                                                                                    <Text>{byProducts[uid].product.name}</Text>
-                                                                                </Flex.Item>
-                                                                                <Flex.Item style={{ flex: 2 }}>
-                                                                                    <Text>x{byProducts[uid].number}</Text>
-                                                                                </Flex.Item>
-                                                                            </Flex>
-                                                                        </Flex.Item>
-                                                                    ))}
-                                                                    < Flex.Item >
-                                                                        <Text>......</Text>
-                                                                    </Flex.Item>
-                                                                </>
+                                                       
+                                                            <>
+                                                                <Text>包厢预约：{byReservationOrders[uid].reservations[0].box.name}</Text>
+                                                                <Text>时间段：</Text>
+                                                                {
+                                                                    byReservationOrders[uid].reservations.map((reservation, index) => (
+                                                                    <Text key={index}>{convertTimestampToYYYYMMDD(reservation.reservationTime)} {convertTimestampToHHMM(reservation.reservationTime)}~{convertTimestampToHHMM(reservation.reservationTime + byReservationOrders[uid].reservations[0].box.duration * 1000 * 60)}</Text>
+                                                                    ))
+                                                                }
+
+                                                            </>
+
                                                     }
                                                 </Flex>
                                             </Card.Body>
@@ -196,9 +176,8 @@ const mapStateToProps = (state, props) => {
         byCustomers: getByCustomers(state),
         customerFaces: getCustomerFaces(state),
         byCustomerFaces: getByCustomerFaces(state),
-        orders: getOrders(state),
-        byOrders: getByOrders(state),
-        byProducts: getByProducts(state),
+        reservationOrders: getReservationOrders(state),
+        byReservationOrders: getByReservationOrders(state),
         byBoxes: getByBoxes(state),
         currentCustomer: getCurrentCustomer(state),
     };

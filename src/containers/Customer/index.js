@@ -8,6 +8,7 @@ import { actions as newOrderActions, getSelectedSlot, getSelectedProduct } from 
 import { getByBoxes } from "../../redux/modules/box";
 import { getByProducts, getByPhotos, getByActivityRules } from "../../redux/modules/product";
 import OrderList from "./components/OrderList";
+import ReservationList from "./components/ReservationList";
 import { Link, Switch, Route, Redirect } from "react-router-native";
 import { matchUrl } from "../../utils/commonUtils";
 import connectRoute from "../../utils/connectRoute";
@@ -24,8 +25,9 @@ const AsyncBoxDetail = connectRoute(asyncComponent(() => import("../BoxDetail"))
 const AsyncProductList = connectRoute(asyncComponent(() => import("../ProductList")));
 
 const tabs = [
-    { title: '新增' },
+    { title: '下单' },
     { title: '订单' },
+    { title: '预约' },
 ];
 
 const style = {
@@ -89,7 +91,7 @@ class Customer extends Component {
         let activityBitmap = new Object();//用于记录已参与的活动
         let ingot = 0;
         let credit = 0;
-        console.log("selectedProduct", selectedProduct);
+        console.log("selectedProduct in getAmountDisplay", selectedProduct);
         for (var key in selectedProduct) {
             //遍历该产品所参与的活动，产品所参与的活动已按照优先级降序排序
             //即产品优先参与优先级高的活动，每个产品一次只能参与一个活动
@@ -101,11 +103,13 @@ class Customer extends Component {
                 const { activityApplyForCustomerTypes } = byActivityRules[rule[i]];
                 //判断用户的vip等级能否参与此活动
                 let isApplicable = false;
-                activityApplyForCustomerTypes.forEach(type => {
-                    if (type.uid == customerType.uid) {
-                        isApplicable = true;
-                    }
-                });
+                if(currentCustomer.customerId){
+                    activityApplyForCustomerTypes.forEach(type => {
+                        if (type.uid == customerType.uid) {
+                            isApplicable = true;
+                        }
+                    });
+                }
                 //vip等级不够则继续判断该产品下一个参与的活动
                 if (!isApplicable) {
                     continue;
@@ -151,7 +155,7 @@ class Customer extends Component {
                     ruleIngot += byProducts[productId].price.ingot;
                     ruleCredit += byProducts[productId].price.credit;
                 });
-                if (activityRule2 == null) {
+                if (activityRule2 == null||activityRule2.number==0) {
                     //折扣
                     ingot += ruleIngot * (100 - activityRule1) / 100;
                     credit += ruleCredit;
@@ -233,7 +237,7 @@ class Customer extends Component {
                 },
                 {
                     text: "确认", onPress: () => {
-                        const key=this.props.toast("loading","loading...",0);
+                        const key = this.props.toast("loading", "loading...", 0);
                         this.props.reserve(order)
                             .then(() => {
                                 Portal.remove(key);
@@ -383,7 +387,28 @@ class Customer extends Component {
                             })
                             .catch(err => {
                                 Portal.remove(key);
-                                this.props.toast("fail", err.error, 8);
+                                if (err.code == 500700) {//余额不足，跳转付费二维码
+                                    Alert.alert(
+                                        "余额不足",
+                                        `${err.error}`,
+                                        [
+                                            {
+                                                text: "取消",
+                                                style: "cancel"
+                                            },
+                                            {
+                                                text: "充值", onPress: () => {
+                                                    this.props.resetAfterCompleteReservation();
+                                                    this.props.history.push(`/mobile/pay/${customerId}`);
+                                                }
+                                            }
+                                        ],
+                                        { cancelable: false }
+                                    );
+                                    return;
+                                }else{
+                                    this.props.toast("fail", err.error, 8);
+                                }
                             })
                     }
                 }
@@ -433,6 +458,7 @@ class Customer extends Component {
             })
     }
 
+
     render() {
         const { byCustomerFaces, byCustomers, user, currentCustomer } = this.props;
         const { uid, type } = this.props.match.params;
@@ -468,7 +494,7 @@ class Customer extends Component {
                         <Card.Header
                             title={
                                 <WingBlank>
-                                    <Text>{hasRegister ? currentCustomer.name : "未注册用户"}</Text>
+                                    <Text>{hasRegister ? currentCustomer.name : "未识别客户"}</Text>
                                     <Text>{balanceDisplay}</Text>
                                 </WingBlank>
                             }
@@ -504,6 +530,9 @@ class Customer extends Component {
                                     </View>
                                     <View>
                                         <OrderList {...this.props} />
+                                    </View>
+                                    <View>
+                                        <ReservationList {...this.props}/>
                                     </View>
                                 </Tabs>
                             }
