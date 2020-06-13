@@ -13,7 +13,7 @@ import { Link, Switch, Route, Redirect } from "react-router-native";
 import { matchUrl } from "../../utils/commonUtils";
 import connectRoute from "../../utils/connectRoute";
 import asyncComponent from "../../utils/AsyncComponent";
-import { timeStampConvertToFormatTime } from "../../utils/timeUtils";
+import { timeStampConvertToFormatTime ,convertTimestampToHHMM,convertTimestampToYYYYMMDD} from "../../utils/timeUtils";
 import Stepper from "../../components/Stepper";
 import { ws } from "../../utils/url";
 import { WebSocketBalanceConnect } from "../../utils/websocket";
@@ -204,14 +204,14 @@ class Customer extends Component {
             console.log("not register")
             return;
         }
-        const reservations = selectedSlot.map(reservationTime => ({ reservationTime, boxId }));
+        const reservations = selectedSlot.map(reservationTime => ({ reservationTime, box:{uid:boxId} }));
         let ingot = 0;
         let credit = 0;
         let confirmationDisplay = "预约以下时间段:\n";
         reservations.forEach(reservation => {
             ingot += price.ingot;
             credit += price.credit;
-            confirmationDisplay += `${timeStampConvertToFormatTime(reservation.reservationTime)}~${timeStampConvertToFormatTime(reservation.reservationTime + duration * 1000 * 60)}\n`;
+            confirmationDisplay += `${convertTimestampToYYYYMMDD(reservation.reservationTime)} ${convertTimestampToHHMM(reservation.reservationTime)}~${convertTimestampToHHMM(reservation.reservationTime + duration * 1000 * 60)}\n`;
         })
         let amountDisplay = "";
         if (ingot != 0) {
