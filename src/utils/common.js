@@ -17,6 +17,6 @@ export const orderStatus = {
 }
 
 export const deliverMode={
-    "selfPickUp":"买家自提",
-    "deliver":"卖家配送",
+    "selfPick":"买家自提",
+    "delivery":"卖家配送",
 }

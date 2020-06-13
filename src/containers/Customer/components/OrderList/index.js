@@ -137,7 +137,7 @@ class OrderList extends Component {
                                         <Card >
                                             <Card.Header
                                                 title={timeStampConvertToFormatTime(byOrders[uid].orderTime)}
-                                                extra={`状态：${orderStatus[byOrders[uid].status.status]}`}
+                                                extra={`编号：${uid}  状态：${orderStatus[byOrders[uid].status.status]}`}
                                             />
                                             <Card.Body>
                                                 <Flex direction="column" style={{ alignItems: "flex-start", margin: 16 }}>

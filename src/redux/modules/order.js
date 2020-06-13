@@ -22,6 +22,8 @@ export const types = {
     FETCH_ORDERS: "ORDER/FETCH_ORDERS",
     RESET_ORDERS: "ORDER/RESET_ORDERS",
     FETCH_CUSTOMER_RESERVATIONS: "ORDER/FETCH_CUSTOMER_RESERVATIONS",
+    FETCH_ORDER: "ORDER/FETCH_ORDER",
+    PAY_ORDER: "ORDER/PAY_ORDER",
 };
 
 //action creators
@@ -98,6 +100,41 @@ export const actions = {
                 type: types.RESET_ORDERS
             })
         }
+    },
+    fetchOrder: (orderId) => {
+        return (dispatch) => {
+            dispatch(actions.resetOrders());
+            return get(url.fetchOrder(orderId)).then((result) => {
+                if (!result.error) {
+                    console.log("result.data", result.data)
+                    const data = convertOrderToPlainStructure(result.data);
+                    dispatch(fetchOrderSuccess(data));
+                    return Promise.resolve();
+                } else {
+                    dispatch(appActions.setError(result.error));
+                    return Promise.reject(result.error);
+                }
+            });
+        }
+    },
+    payOrder: (customerId, orderId) => {
+        return (dispatch) => {
+            dispatch(appActions.startRequest());
+            return post(url.payOrder(customerId, orderId)).then((result) => {
+                dispatch(appActions.finishRequest());
+                if (!result.error) {
+                    console.log("result.data", result.data)
+                    dispatch({
+                        type: types.PAY_ORDER,
+                        orderId
+                    });
+                    return Promise.resolve();
+                } else {
+                    dispatch(appActions.setError(result.error));
+                    return Promise.reject(result);
+                }
+            });
+        }
     }
 }
 
@@ -152,6 +189,12 @@ const convertOrdersToPlainStructure = (data) => {
     }
 }
 
+const fetchOrderSuccess = ({ order, byProducts }) => ({
+    type: types.FETCH_ORDER,
+    order,
+    byProducts
+})
+
 const convertOrderToPlainStructure = (data) => {
     let products = new Array();
     let byProducts = new Object();
@@ -163,7 +206,6 @@ const convertOrderToPlainStructure = (data) => {
     });
     return {
         order: { ...data, products },
-        products,
         byProducts
     }
 }
@@ -191,6 +233,31 @@ const reducer = (state = initialState, action) => {
     let reservationOrders = new Array();
     let byReservationOrders = new Object();
     switch (action.type) {
+        case types.PAY_ORDER:
+            if (state.byOrders[action.orderId]) {
+                return {
+                    ...state,
+                    byOrders: {
+                        ...state.byOrders,
+                        [action.orderId]: {
+                            ...state.byOrders[action.orderId],
+                            status: {
+                                ...state.byOrders[action.orderId].status,
+                                status: "complete"
+                            }
+                        }
+                    }
+                }
+            } else {
+                return { ...state };
+            }
+        case types.FETCH_ORDER:
+            return {
+                ...state,
+                orders: state.orders.concat([action.order.uid]),
+                byOrders: { ...state.byOrders, [action.order.uid]: action.order },
+                byProducts: { ...state.byProducts, ...action.byProducts }
+            }
         case types.FETCH_CUSTOMER_RESERVATIONS:
             reservationOrders = action.reservationOrders.filter(uid => {
                 if (state.reservationOrders.indexOf(uid) == -1) {
@@ -204,6 +271,20 @@ const reducer = (state = initialState, action) => {
             };
         case types.RESET_ORDERS:
             return { ...state, orders, byOrders, byProducts, reservationOrders, byReservationOrders };
+        case types.FETCH_ORDERS:
+            orders = action.orders.filter(uid => {
+                if (state.orders.indexOf(uid) == -1) {
+                    return true;
+                }
+                return false;
+            })
+            return {
+                ...state,
+                orders: state.orders.concat(orders),
+                byOrders: { ...state.byOrders, ...action.byOrders },
+                byProducts: { ...state.byProducts, ...action.byProducts }
+            };
+        ////////////
         case types.COMPLETE_RESERVATION:
             orders = state.orders.concat([action.order.uid]);
             byOrders = { ...state.byOrders, [action.order.uid]: action.order };
@@ -220,14 +301,6 @@ const reducer = (state = initialState, action) => {
                 byProducts[uid] = action.byProducts[uid];
             });
             return { ...state, orders, byOrders, byProducts };
-        case types.FETCH_ORDERS:
-            orders = action.orders.filter(uid => {
-                if (state.orders.indexOf(uid) == -1) {
-                    return true;
-                }
-                return false;
-            })
-            return { ...state, orders: state.orders.concat(orders), byOrders: { ...state.byOrders, ...action.byOrders }, byProducts: { ...state.byProducts, ...action.byProducts } };
         case types.FETCH_CUSTOMER_ORDERS:
             return { ...state, orders: action.orders, byOrders: action.byOrders, byProducts: action.byProducts };
         default:

@@ -11,7 +11,7 @@ import { orderStatus } from "../../../../utils/common";
 import { Link } from "react-router-native";
 import { matchUrl } from "../../../../utils/commonUtils";
 
-class OrderList extends Component {
+class ReservationList extends Component {
 
     state = {
         refreshing: false,
@@ -46,6 +46,7 @@ class OrderList extends Component {
         const { page } = this.state;
         if (currentCustomer.customerId) {
             this.setState({ refreshing: true })
+            this.props.resetOrders();
             this.props.fetchCustomerReservations(currentCustomer.customerId, page)
                 .then(() => {
                     this.setState({ refreshing: false })
@@ -137,7 +138,7 @@ class OrderList extends Component {
                                         <Card >
                                             <Card.Header
                                                 title={timeStampConvertToFormatTime(byReservationOrders[uid].orderTime)}
-                                                extra={`状态：${orderStatus[byReservationOrders[uid].status.status]}`}
+                                                extra={`编号${uid} 状态：${orderStatus[byReservationOrders[uid].status.status]}`}
                                             />
                                             <Card.Body>
                                                 <Flex direction="column" style={{ alignItems: "flex-start", margin: 16 }}>
@@ -191,4 +192,4 @@ const mapDispatchToProps = (dispatch) => {
 };
 
 
-export default connect(mapStateToProps, mapDispatchToProps)(OrderList);
+export default connect(mapStateToProps, mapDispatchToProps)(ReservationList);

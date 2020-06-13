@@ -1,13 +1,14 @@
 import React, { Component } from "react";
 import { View, Text, TouchableOpacity, ScrollView, Alert } from "react-native";
-import { Flex, Icon, InputItem, Accordion, List, Button } from "@ant-design/react-native";
+import { Flex, Icon, InputItem, Accordion, List, Button, ActivityIndicator, Portal } from "@ant-design/react-native";
 import BackArrow from "../../components/BackArrow";
 import { bindActionCreators } from "redux";
 import { connect } from "react-redux";
+import { actions as customerActions, getCurrentCustomer } from "../../redux/modules/customer";
 import { actions as orderActions, getByOrders, getOrders, getByProducts } from "../../redux/modules/order";
 import { getByBoxes } from "../../redux/modules/box";
 import { deliverMode, orderStatus } from "../../utils/common";
-import { timeStampConvertToFormatTime } from "../../utils/timeUtils";
+import { timeStampConvertToFormatTime,convertTimestampToHHMM,convertTimestampToYYYYMMDD } from "../../utils/timeUtils";
 import { Link } from "react-router-native";
 
 class OrderDetail extends Component {
@@ -20,19 +21,32 @@ class OrderDetail extends Component {
         this.setState({ activeSections });
     };
 
+    componentDidMount() {
+        const { orderId } = this.props.match.params;
+        this.props.fetchOrder(orderId)
+            .catch(err => {
+                this.props.toast("fail", err.error);
+            })
+
+    }
+
     getAmountDisplay = () => {
         const { orderId } = this.props.match.params;
         const { byOrders } = this.props;
-        const { ingot, credit } = byOrders[orderId].amount;
         let display = "";
-        if (ingot != 0) {
-            display += ingot + "元宝";
-        }
-        if (credit != 0) {
-            display += credit + "积分";
-        }
-        if (ingot == 0 && credit == 0) {
-            display = 0;
+        try {
+            const { ingot, credit } = byOrders[orderId].amount;
+            if (ingot != 0) {
+                display += ingot + "元宝";
+            }
+            if (credit != 0) {
+                display += credit + "积分";
+            }
+            if (ingot == 0 && credit == 0) {
+                display = 0;
+            }
+        } catch (err) {
+            console.log(err);
         }
         return display;
     }
@@ -50,40 +64,84 @@ class OrderDetail extends Component {
     }
 
     //买家提货
-    pickUp = () => {
-        const { orderId } = this.props.match.params;
-        const { user } = this.props;
-        console.log("pick up", orderId, user);
-        Alert.alert(
-            "确认？",
-            "确认买家已提货？",
-            [
-                {
-                    text: "取消",
-                    style: "cancel"
-                },
-                {
-                    text: "确认", onPress: () => {
-                        this.props.customerPickUp(orderId, user)
-                            .then(() => {
+    // pickUp = () => {
+    //     const { orderId } = this.props.match.params;
+    //     const { user } = this.props;
+    //     console.log("pick up", orderId, user);
+    //     Alert.alert(
+    //         "确认？",
+    //         "确认买家已提货？",
+    //         [
+    //             {
+    //                 text: "取消",
+    //                 style: "cancel"
+    //             },
+    //             {
+    //                 text: "确认", onPress: () => {
+    //                     this.props.customerPickUp(orderId, user)
+    //                         .then(() => {
 
-                            })
-                            .catch(err => {
-                                this.props.toast("fail", err);
-                            })
-                    }
+    //                         })
+    //                         .catch(err => {
+    //                             this.props.toast("fail", err);
+    //                         })
+    //                 }
+    //             }
+    //         ],
+    //         { cancelable: false }
+    //     );
+    // }
+
+    payOrder = () => {
+        const { orderId } = this.props.match.params;
+        const { currentCustomer } = this.props;
+        const key = this.props.toast("loading", 'Loading....', 0);
+        const { customerId } = currentCustomer;
+        this.props.payOrder(customerId, orderId)
+            .then(() => {
+                Portal.remove(key);
+                this.props.toast("success", "付款成功");
+            })
+            .catch(err => {
+                console.log(err);
+                Portal.remove(key);
+                if (err.code == 500700) {//余额不足，跳转付费二维码
+                    Alert.alert(
+                        "余额不足",
+                        `${err.error}`,
+                        [
+                            {
+                                text: "取消",
+                                style: "cancel"
+                            },
+                            {
+                                text: "充值", onPress: () => {
+                                    this.props.history.push(`/mobile/pay/${customerId}`);
+                                }
+                            }
+                        ],
+                        { cancelable: false }
+                    );
+                    return;
+                } else {
+                    this.props.toast("fail", err.error, 8);
                 }
-            ],
-            { cancelable: false }
-        );
+            })
     }
 
     render() {
         const { orderId } = this.props.match.params;
-        const { orders, byOrders, byProducts, byBoxes } = this.props;
+        const { orders, byOrders, byProducts, byBoxes, currentCustomer } = this.props;
+        if (byOrders[orderId] == undefined) {
+            return (
+                <View style={{ width: "100%", height: "100%", justifyContent: "center", alignItems: "center" }}>
+                    <ActivityIndicator size="large" />
+                </View>
+            )
+        }
         const amountDisplay = this.getAmountDisplay();
         const isReservation = byOrders[orderId].reservations.length > 0;
-        const customerId = byOrders[orderId].customer.uid;
+        const { customerId } = currentCustomer;
         console.log("order id", orderId);
         return (
             <Flex direction="column" style={{ width: "100%", height: "100%", justifyContent: "flex-start" }}>
@@ -104,22 +162,32 @@ class OrderDetail extends Component {
                                     <List.Item>
                                         <Flex>
                                             <Flex.Item>
+                                                <Text>订单编号</Text>
+                                            </Flex.Item>
+                                            <Flex.Item style={{ flex: 3 }}>
+                                                <Text>{orderId}</Text>
+                                            </Flex.Item>
+                                        </Flex>
+                                    </List.Item>
+                                    <List.Item>
+                                        <Flex>
+                                            <Flex.Item>
                                                 <Text>订单状态</Text>
                                             </Flex.Item>
                                             <Flex.Item style={{ flex: byOrders[orderId].deliverMode == "selfPickUp" && byOrders[orderId].status.status == "payed" ? 2 : 3 }}>
                                                 <Flex>
-                                                    <Text>{orderStatus[byOrders[orderId].status.status]}{byOrders[orderId].status.processer==null?null:`(处理人:${byOrders[orderId].status.processer.name})`}</Text>
-                                                    {byOrders[orderId].status.status=="unpay"?
-                                                    <TouchableOpacity onPress={() => this.props.history.push(`/mobile/pay/${customerId}`)}>
-                                                        <Text style={{ marginLeft: 15, textDecorationLine: "underline", textDecorationColor: "#108EE9", color: "#108EE9" }}>付款</Text>
-                                                    </TouchableOpacity>:null}
+                                                    <Text>{orderStatus[byOrders[orderId].status.status]}{byOrders[orderId].status.processer == null ? null : `(处理人:${byOrders[orderId].status.processer.name})`}</Text>
+                                                    {byOrders[orderId].status.status == "unpay" ?
+                                                        <TouchableOpacity onPress={this.payOrder}>
+                                                            <Text style={{ marginLeft: 15, textDecorationLine: "underline", textDecorationColor: "#108EE9", color: "#108EE9" }}>付款</Text>
+                                                        </TouchableOpacity> : null}
                                                 </Flex>
                                             </Flex.Item>
                                             {
-                                                byOrders[orderId].deliverMode == "selfPickUp" && byOrders[orderId].status.status == "payed" ?
-                                                    <Flex.Item>
-                                                        <Button type="primary" size="small" style={{ width: 80 }} onPress={this.pickUp}>提货</Button>
-                                                    </Flex.Item> : null 
+                                                // byOrders[orderId].deliverMode == "selfPickUp" && byOrders[orderId].status.status == "payed" ?
+                                                //     <Flex.Item>
+                                                //         <Button type="primary" size="small" style={{ width: 80 }} onPress={this.pickUp}>提货</Button>
+                                                //     </Flex.Item> : null
                                             }
                                         </Flex>
                                     </List.Item>
@@ -143,17 +211,18 @@ class OrderDetail extends Component {
                                             </Flex.Item>
                                         </Flex>
                                     </List.Item>
-                                    <List.Item>
-                                        <Flex>
-                                            <Flex.Item>
-                                                <Text>下单地点</Text>
-                                            </Flex.Item>
-                                            <Flex.Item style={{ flex: 3 }}>
-                                                <Text>{byOrders[orderId].placeOrderWay == null ? "线上" : `门店${byOrders[orderId].placeOrderWay.name}`}</Text>
-                                            </Flex.Item>
-                                        </Flex>
-                                    </List.Item>
-                                    <List.Item>
+                                    {isReservation ? null :
+                                        <List.Item>
+                                            <Flex>
+                                                <Flex.Item>
+                                                    <Text>下单地点</Text>
+                                                </Flex.Item>
+                                                <Flex.Item style={{ flex: 3 }}>
+                                                    <Text>{byOrders[orderId].deliverMode != null ? "线上" : byOrders[orderId].boxOrder != null ? `包厢 ${byOrders[orderId].boxOrder.name}` : `门店 ${byOrders[orderId].placeOrderWay.name}`}</Text>
+                                                </Flex.Item>
+                                            </Flex>
+                                        </List.Item>}
+                                    {byOrders[orderId].deliverMode == null ? null : <List.Item>
                                         <Flex>
                                             <Flex.Item>
                                                 <Text>配送方式</Text>
@@ -162,9 +231,9 @@ class OrderDetail extends Component {
                                                 <Text>{deliverMode[byOrders[orderId].deliverMode]}</Text>
                                             </Flex.Item>
                                         </Flex>
-                                    </List.Item>
+                                    </List.Item>}
                                     {
-                                        byOrders[orderId].buyerPs == null ? null :
+                                        byOrders[orderId].buyerPs == null || byOrders[orderId].buyerPs == "" ? null :
                                             <List.Item>
                                                 <Flex>
                                                     <Flex.Item>
@@ -212,7 +281,7 @@ class OrderDetail extends Component {
                                                 <Text>姓名</Text>
                                             </Flex.Item>
                                             <Flex.Item style={{ flex: 3 }}>
-                                                <Text>{byOrders[orderId].customer.name}</Text>
+                                                <Text>{currentCustomer.name}</Text>
                                             </Flex.Item>
                                         </Flex>
                                     </List.Item>
@@ -222,13 +291,49 @@ class OrderDetail extends Component {
                                                 <Text>联系方式</Text>
                                             </Flex.Item>
                                             <Flex.Item style={{ flex: 3 }}>
-                                                <Text>{byOrders[orderId].customer.contact}</Text>
+                                                <Text>{currentCustomer.contact}</Text>
                                             </Flex.Item>
                                         </Flex>
                                     </List.Item>
                                 </List>
                             </Accordion.Panel>
-                            {byOrders[orderId].deliverMode == "selfPickUp" ?
+                            {isReservation?<Text style={{ width: 0, height: 0 }}></Text>:
+                            byOrders[orderId].deliverMode == "delivery" ?
+                                <Accordion.Panel header="收件人信息">
+                                    <List>
+                                        <List.Item>
+                                            <Flex>
+                                                <Flex.Item>
+                                                    <Text>姓名</Text>
+                                                </Flex.Item>
+                                                <Flex.Item style={{ flex: 3 }}>
+                                                    <Text>{byOrders[orderId].address.name}</Text>
+                                                </Flex.Item>
+                                            </Flex>
+                                        </List.Item>
+                                        <List.Item>
+                                            <Flex>
+                                                <Flex.Item>
+                                                    <Text>联系方式</Text>
+                                                </Flex.Item>
+                                                <Flex.Item style={{ flex: 3 }}>
+                                                    <Text>{byOrders[orderId].address.phone}</Text>
+                                                </Flex.Item>
+                                            </Flex>
+                                        </List.Item>
+                                        <List.Item>
+                                            <Flex>
+                                                <Flex.Item>
+                                                    <Text>收货地址</Text>
+                                                </Flex.Item>
+                                                <Flex.Item style={{ flex: 3 }}>
+                                                    <Text>{`${byOrders[orderId].address.province} ${byOrders[orderId].address.city} ${byOrders[orderId].address.district} ${byOrders[orderId].address.detail} `}</Text>
+                                                </Flex.Item>
+                                            </Flex>
+                                        </List.Item>
+                                    </List>
+                                </Accordion.Panel> : <Text style={{ width: 0, height: 0 }}></Text>}
+                            {byOrders[orderId].boxOrder != null ? <Text style={{ width: 0, height: 0 }}></Text> : byOrders[orderId].deliverMode == "selfPickUp" ?
                                 <Text style={{ width: 0, height: 0 }}></Text> : byOrders[orderId].trackInfo == null ? <Text style={{ width: 0, height: 0 }}></Text> :
                                     <Accordion.Panel header="配送信息">
                                         <List>
@@ -307,12 +412,12 @@ class OrderDetail extends Component {
                                         <List.Item>
                                             <Flex>
                                                 <Flex.Item>
-                                                    <Text>包厢：{byBoxes[byOrders[orderId].reservations[0].boxId].name}</Text>
+                                                    <Text>包厢：{byOrders[orderId].reservations[0].box.name}</Text>
                                                 </Flex.Item>
                                                 <Flex.Item style={{ flex: 2 }} >
                                                     {
                                                         byOrders[orderId].reservations.map((reservation, index) => (
-                                                            <Text key={index}>{timeStampConvertToFormatTime(reservation.reservationTime)}~{timeStampConvertToFormatTime(reservation.reservationTime + byBoxes[byOrders[orderId].reservations[0].boxId].duration * 1000 * 60)}</Text>
+                                                        <Text key={index}>{convertTimestampToYYYYMMDD(reservation.reservationTime)} {convertTimestampToHHMM(reservation.reservationTime)}~{convertTimestampToHHMM(reservation.reservationTime + byOrders[orderId].reservations[0].box.duration * 1000 * 60)}</Text>
                                                         ))
                                                     }
                                                 </Flex.Item>
@@ -326,7 +431,7 @@ class OrderDetail extends Component {
                                                 <List.Item key={uid}>
                                                     <Flex>
                                                         <Flex.Item style={{ flex: 2 }}>
-                                                            <Text>{byProducts[uid].product.name}</Text> 
+                                                            <Text>{byProducts[uid].product.name}</Text>
                                                         </Flex.Item>
                                                         <Flex.Item >
                                                             <Text>{`x${byProducts[uid].number}`}</Text>
@@ -350,11 +455,13 @@ const mapStateToProps = (state, props) => {
         byOrders: getByOrders(state),
         byProducts: getByProducts(state),
         byBoxes: getByBoxes(state),
+        currentCustomer: getCurrentCustomer(state),
     };
 };
 
 const mapDispatchToProps = (dispatch) => {
     return {
+        ...bindActionCreators(customerActions, dispatch),
         ...bindActionCreators(orderActions, dispatch),
     };
 };

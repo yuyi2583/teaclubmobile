@@ -87,7 +87,6 @@ class Customer extends Component {
     getAmountDisplay = () => {
         const { selectedProduct, byActivityRules, byProducts, currentCustomer } = this.props;
         const { clerkDiscount } = this.state;
-        const { customerType } = currentCustomer;
         let activityBitmap = new Object();//用于记录已参与的活动
         let ingot = 0;
         let credit = 0;
@@ -104,6 +103,7 @@ class Customer extends Component {
                 //判断用户的vip等级能否参与此活动
                 let isApplicable = false;
                 if(currentCustomer.customerId){
+                    const {customerType}=currentCustomer.customer
                     activityApplyForCustomerTypes.forEach(type => {
                         if (type.uid == customerType.uid) {
                             isApplicable = true;
@@ -398,7 +398,7 @@ class Customer extends Component {
                                             },
                                             {
                                                 text: "充值", onPress: () => {
-                                                    this.props.resetAfterCompleteReservation();
+                                                    this.props.resetSelectedProduct();
                                                     this.props.history.push(`/mobile/pay/${customerId}`);
                                                 }
                                             }

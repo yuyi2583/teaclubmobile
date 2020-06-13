@@ -18,6 +18,8 @@ export default {
    register:(faceId)=>`${HOST}/register/${faceId}`,
    fetchOrders:(customerId,page)=>`${HOST}/orders/${customerId}/${page}`,
    fetchCustomerReservations:(customerId,page)=>`${HOST}/reservations/${customerId}/${page}`,
+   fetchOrder:(orderId)=>`${HOST}/order/${orderId}`,
+   payOrder:(customerId,orderId)=>`${HOST}/pay/${customerId}/${orderId}`,
 }
 
 export const ws={

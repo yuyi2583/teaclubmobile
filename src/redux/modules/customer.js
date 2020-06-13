@@ -282,8 +282,8 @@ const reducer = (state = initialState, action) => {
             if (state.customers.indexOf(action.customer.uid) == -1) {
                 customers = state.customers.concat([action.customer.uid]);
             }
-            byCustomers = { ...state.byCustomers, [action.customer.uid]: action.customer };
-            return { ...state, customers, byCustomers };
+            byCustomers = { ...state.byCustomers, [action.customer.uid]: action.customer};
+            return { ...state, customers, byCustomers,currentCustomer:{...state.currentCustomer,customer:action.customer,customerId:action.customer.uid } };
         default:
             return state;
     }
